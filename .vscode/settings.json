@@ -1,0 +1,9 @@
+{
+  "liveServer.settings.ignoreFiles": [
+    "**/backend/**",
+    "**/.vscode/**",
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/*.md"
+  ]
+}

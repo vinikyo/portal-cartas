@@ -1,0 +1,468 @@
+/* style.css — mobile-first. Breakpoint único em 768px cobre a maior parte dos casos.
+   Paleta e componentes inspirados visualmente no site LigaPokemon (ligapokemon.com.br):
+   vermelho como cor de marca/ação principal, azul como cor de apoio/links/foco,
+   fundo cinza-claro, superfícies brancas em "cards" com sombra suave. */
+
+:root {
+  --color-primary: #e3242b;        /* vermelho de marca (topbar, botões primários) */
+  --color-primary-dark: #b81c22;
+  --color-primary-soft: #fdeceb;
+
+  --color-secondary: #1f6fd6;      /* azul de apoio (links, foco, botões secundários) */
+  --color-secondary-dark: #1856a8;
+  --color-secondary-soft: #e8f1fd;
+
+  --color-accent: #ffcb05;         /* amarelo pontual, tipo "epic"/destaque */
+
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+
+  --color-bg: #eef0f3;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-border: #e2e5ea;
+
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(17, 24, 39, 0.08), 0 1px 2px rgba(17, 24, 39, 0.05);
+  --shadow-md: 0 4px 14px rgba(17, 24, 39, 0.1);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* O atributo nativo `hidden` só esconde um elemento por causa de uma regra
+   padrão do navegador ([hidden] { display: none }), que é CSS de user-agent —
+   ou seja, qualquer classe nossa que defina `display` (ex: .card-thumb,
+   .image-upload__preview, .modal) automaticamente ganha dessa regra padrão,
+   mesmo com especificidade parecida, porque CSS de autor sempre vence CSS de
+   user-agent. Sem isso, elementos com `hidden` + uma classe com display
+   explícito continuam visíveis mesmo "escondidos" pelo JS. Esta regra única
+   resolve isso pra qualquer elemento do projeto, de uma vez por todas. */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+a { color: var(--color-secondary); }
+
+/* ---------- Marca / wordmark (CSS puro, sem imagem) ---------- */
+
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.brand__accent { color: var(--color-primary); }
+.brand__main { color: var(--color-text); }
+
+/* ---------- Botões ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(227, 36, 43, 0.35);
+}
+.btn--primary:hover { background: var(--color-primary-dark); }
+
+.btn--ghost {
+  background: var(--color-secondary-soft);
+  border-color: #cfe1f8;
+  color: var(--color-secondary-dark);
+}
+.btn--ghost:hover { background: #d7e8fc; }
+
+.btn--danger {
+  background: #fee2e2;
+  color: var(--color-danger);
+}
+.btn--danger:hover { background: #fecaca; }
+
+.btn--small { padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 999px; }
+.btn--full { width: 100%; }
+
+.btn:disabled, .btn.is-loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ---------- Formulários ---------- */
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  background: #fff;
+  color: var(--color-text);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(31, 111, 214, 0.15);
+}
+
+.form-group select:disabled {
+  background: #f3f4f6;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.is-invalid { border-color: var(--color-danger) !important; }
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  min-height: 1em;
+}
+
+/* ---------- Tela de Login ---------- */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(227, 36, 43, 0.06), rgba(238, 240, 243, 0) 220px),
+    var(--color-bg);
+}
+
+.login-card {
+  background: var(--color-surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 2rem 1.75rem;
+  width: 100%;
+  max-width: 380px;
+  border-top: 4px solid var(--color-primary);
+}
+
+.login-card__brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+  font-size: 1.4rem;
+}
+
+.login-card__title { margin: 0 0 0.25rem; font-size: 1.15rem; text-align: center; color: var(--color-text-muted); font-weight: 600; }
+.login-card__subtitle { margin: 0 0 1.5rem; color: var(--color-text-muted); font-size: 0.85rem; text-align: center; }
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+  background: var(--color-surface);
+  border-bottom: 3px solid var(--color-primary);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar__title { margin: 0; font-size: 1.3rem; }
+.topbar__user { display: flex; align-items: center; gap: 0.85rem; font-size: 0.9rem; color: var(--color-text-muted); }
+.topbar__user #current-username { font-weight: 700; color: var(--color-text); }
+
+/* ---------- Conteúdo admin ---------- */
+
+.admin-content { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+.admin-content__actions { margin-bottom: 1rem; display: flex; justify-content: flex-end; }
+
+/* ---------- Filtros ---------- */
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border-top: 3px solid var(--color-secondary);
+}
+
+.filters .form-group { margin-bottom: 0; }
+
+@media (min-width: 640px) {
+  .filters {
+    grid-template-columns: 2fr 1fr 1fr;
+    align-items: end;
+  }
+}
+
+/* ---------- Miniatura / placeholder de carta ---------- */
+
+.card-thumb {
+  width: 48px;
+  height: 67px; /* proporção ~2.5:3.5 de uma carta física */
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  display: block;
+}
+
+.card-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fff;
+  color: var(--color-text-muted);
+  font-size: 0.6rem;
+  line-height: 1.15;
+  padding: 0.2rem;
+}
+
+@media (max-width: 767px) {
+  .cards-table td[data-label="Imagem"] { justify-content: flex-start; }
+  .cards-table td[data-label="Imagem"]::before { display: none; }
+}
+
+/* ---------- Upload de imagem (formulário) ---------- */
+
+.image-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.image-upload__preview-box .card-thumb,
+.image-upload__preview {
+  width: 72px;
+  height: 100px;
+  font-size: 0.7rem;
+}
+
+.image-upload__preview {
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  display: block;
+}
+
+.table-wrapper {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.loading-state, .empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Tabela vira "cards" empilhados no mobile */
+.cards-table { width: 100%; border-collapse: collapse; }
+
+@media (max-width: 767px) {
+  .cards-table thead { display: none; }
+  .cards-table, .cards-table tbody, .cards-table tr, .cards-table td { display: block; width: 100%; }
+  .cards-table tr {
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 1rem;
+  }
+  .cards-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    text-align: right;
+  }
+  .cards-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-align: left;
+  }
+  .cards-table__actions { justify-content: flex-end; gap: 0.5rem; }
+}
+
+@media (min-width: 768px) {
+  .cards-table th, .cards-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cards-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-secondary-dark);
+    background: var(--color-secondary-soft);
+  }
+  .cards-table tbody tr:hover { background: #fafbfc; }
+  .cards-table__actions { display: flex; gap: 0.5rem; }
+}
+
+/* ---------- Badges (Card Game / Raridade) ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge--game-magic { background: #f1e7fb; color: #6b21a8; }
+.badge--game-pokemon { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.badge--game-yugioh { background: #fff3d6; color: #92610a; }
+
+.badge--rarity-common { background: #eef0f3; color: var(--color-text-muted); }
+.badge--rarity-uncommon { background: #e4f6ea; color: var(--color-success); }
+.badge--rarity-rare { background: var(--color-secondary-soft); color: var(--color-secondary-dark); }
+.badge--rarity-super_rare { background: #f1e7fb; color: #6b21a8; }
+.badge--rarity-ultra_rare { background: #fff0da; color: #b45309; }
+.badge--rarity-secret_rare { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+
+/* ---------- Modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .modal { align-items: center; }
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+}
+
+.modal__panel {
+  position: relative;
+  background: var(--color-surface);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px 12px 0 0;
+  border-top: 4px solid var(--color-primary);
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .modal__panel { border-radius: 12px; }
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal__header h2 { margin: 0; font-size: 1.15rem; }
+
+.modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* ---------- Toasts ---------- */
+
+#toast-container {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 100;
+  width: calc(100% - 2rem);
+  max-width: 360px;
+}
+
+.toast {
+  background: #111827;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast--visible { opacity: 1; transform: translateY(0); }
+.toast--success { background: var(--color-success); }
+.toast--error { background: var(--color-danger); }

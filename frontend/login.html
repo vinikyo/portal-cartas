@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Cartas — Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="login-card__brand">
+      <span class="brand"><span class="brand__accent">Portal</span><span class="brand__main">Cartas</span></span>
+    </div>
+    <h1 class="login-card__title">Área administrativa</h1>
+    <p class="login-card__subtitle">Acesse com seu usuário e senha</p>
+
+    <form id="login-form" class="form" novalidate>
+      <div class="form-group">
+        <label for="username">Usuário</label>
+        <input type="text" id="username" name="username" autocomplete="username" required />
+        <span class="field-error" data-error-for="username"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required />
+        <span class="field-error" data-error-for="password"></span>
+      </div>
+
+      <button type="submit" id="login-button" class="btn btn--primary btn--full">Entrar</button>
+    </form>
+  </main>
+
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script src="js/consts.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

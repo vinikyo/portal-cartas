@@ -1,0 +1,18 @@
+# SO / editor
+.DS_Store
+Thumbs.db
+
+# Dependências (caso venham a existir)
+node_modules/
+vendor/
+
+# Ambiente
+.env
+.env.local
+
+# Uploads enviados em tempo de execução (mantém a pasta, ignora o conteúdo)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# Logs
+*.log
