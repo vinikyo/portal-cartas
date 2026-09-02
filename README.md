@@ -53,6 +53,12 @@ php -S localhost:8000
 
 Depois, abra `http://localhost:5500/login.html` no navegador (sirva a pasta `frontend/` com `php -S localhost:5500 -t frontend` em outro terminal, ou use a extensão Live Server do VS Code — evite abrir o arquivo direto via `file://`). Se usar Live Server, abra a pasta `portal-cartas/` inteira como workspace pra que o `.vscode/settings.json` do repositório entre em vigor (ver observação acima).
 
+## Screenshots
+
+| Listagem de cartas (desktop) | Listagem de cartas (mobile) |
+|-------------------------------|-------------------------------|
+| ![Listagem desktop](docs/screenshots/listagem.png) | ![Listagem mobile](docs/screenshots/mobile.png) |
+
 ## Credenciais de teste
 
 | Usuário | Senha      |
@@ -66,6 +72,8 @@ portal-cartas/
 ├── docker-compose.yml
 ├── .vscode/
 │   └── settings.json         # ignora backend/ no watcher do Live Server (evita reload no meio do upload)
+├── docs/
+│   └── screenshots/           # imagens usadas na seção Screenshots deste README
 ├── backend/
 │   ├── Dockerfile
 │   ├── public/
