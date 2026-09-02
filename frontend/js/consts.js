@@ -1,7 +1,7 @@
 // consts.js
 // Constantes usadas em mais de um arquivo: URL da API e mensagens padrão.
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://backend-production-ec5a.up.railway.app/api'
 
 const MESSAGES = {
   LOGIN_ERROR: 'Usuário ou senha inválidos.',
