@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal de Cartas — Gerenciador</title>
+  <title>Portal de Cartas — Detalhes</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body class="admin-page">
   <header class="topbar">
     <h1 class="topbar__title">
       <span class="brand"><span class="brand__accent">Portal</span><span class="brand__main">Cartas</span></span>
-      <span style="font-weight:400; color: var(--color-text-muted); font-style: normal;"> · Gerenciador</span>
+      <span style="font-weight:400; color: var(--color-text-muted); font-style: normal;"> · Detalhes</span>
     </h1>
     <div class="topbar__user">
       <span id="current-username"></span>
@@ -19,72 +19,56 @@
   </header>
 
   <main class="admin-content">
-    <div class="admin-content__actions">
-      <button id="new-card-button" class="btn btn--primary">+ Nova Carta</button>
-    </div>
+    <a href="admin.html" class="detail-back">&larr; Voltar para o gerenciador</a>
 
-    <div class="filters">
-      <div class="form-group filters__search">
-        <label for="filter-search">Buscar</label>
-        <input type="search" id="filter-search" placeholder="Buscar por nome, ex: pikachu..." />
+    <p id="loading-state" class="loading-state">Carregando carta...</p>
+    <p id="error-state" class="empty-state" hidden></p>
+
+    <div id="detail-card" class="detail-card" hidden>
+      <div class="detail-card__image-col">
+        <img id="detail-image" class="detail-card__image" alt="" hidden />
+        <div id="detail-image-placeholder" class="card-thumb card-thumb--placeholder detail-card__image">
+          Sem imagem
+        </div>
       </div>
-      <div class="form-group">
-        <label for="filter-game">Card Game</label>
-        <select id="filter-game">
-          <option value="">Todos</option>
-          <option value="magic">Magic: The Gathering</option>
-          <option value="pokemon">Pokémon</option>
-          <option value="yugioh">Yu-Gi-Oh!</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="filter-rarity">Raridade</label>
-        <select id="filter-rarity">
-          <option value="">Todas</option>
-          <option value="common">Comum</option>
-          <option value="uncommon">Incomum</option>
-          <option value="rare">Rara</option>
-          <option value="super_rare">Super Rara</option>
-          <option value="ultra_rare">Ultra Rara</option>
-          <option value="secret_rare">Secreta Rara</option>
-        </select>
+
+      <div class="detail-card__info">
+        <div class="detail-card__badges">
+          <span id="detail-game-badge"></span>
+          <span id="detail-rarity-badge"></span>
+        </div>
+
+        <h2 id="detail-name-en" class="detail-card__title"></h2>
+        <p id="detail-name-pt" class="detail-card__subtitle"></p>
+
+        <dl class="detail-card__facts">
+          <div class="detail-card__fact">
+            <dt>Card Game</dt>
+            <dd id="detail-game"></dd>
+          </div>
+          <div class="detail-card__fact">
+            <dt>Edição</dt>
+            <dd id="detail-edition"></dd>
+          </div>
+          <div class="detail-card__fact">
+            <dt>Raridade</dt>
+            <dd id="detail-rarity"></dd>
+          </div>
+        </dl>
+
+        <div class="detail-card__actions">
+          <button id="edit-from-detail" class="btn btn--primary">Editar esta carta</button>
+        </div>
       </div>
     </div>
-
-    <div id="table-wrapper" class="table-wrapper">
-      <table class="cards-table">
-        <thead>
-          <tr>
-            <th>Imagem</th>
-            <th>Nome (EN)</th>
-            <th>Nome (PT)</th>
-            <th>Card Game</th>
-            <th>Edição</th>
-            <th>Raridade</th>
-            <th aria-label="Ações"></th>
-          </tr>
-        </thead>
-        <tbody id="cards-tbody">
-          <!-- linhas inseridas via JS -->
-        </tbody>
-      </table>
-      <p id="empty-state" class="empty-state" hidden>Nenhuma carta cadastrada ainda.</p>
-      <p id="loading-state" class="loading-state">Carregando cartas...</p>
-    </div>
-
-    <nav id="pagination" class="pagination" hidden aria-label="Paginação de cartas">
-      <button id="pagination-prev" type="button" class="btn btn--ghost btn--small">&larr; Anterior</button>
-      <span id="pagination-info" class="pagination__info"></span>
-      <button id="pagination-next" type="button" class="btn btn--ghost btn--small">Próxima &rarr;</button>
-    </nav>
   </main>
 
-  <!-- Modal de criar/editar -->
+  <!-- Modal de editar (mesmo markup/lógica de admin.html, via card-modal.js) -->
   <div id="card-modal" class="modal" hidden>
     <div class="modal__backdrop" data-close-modal></div>
     <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal__header">
-        <h2 id="modal-title">Nova Carta</h2>
+        <h2 id="modal-title">Editar Carta</h2>
         <button class="modal__close" data-close-modal aria-label="Fechar">&times;</button>
       </div>
 
@@ -167,6 +151,6 @@
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
   <script src="js/card-modal.js"></script>
-  <script src="js/admin.js"></script>
+  <script src="js/detail.js"></script>
 </body>
 </html>

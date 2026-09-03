@@ -331,13 +331,14 @@ a { color: var(--color-secondary); }
     color: var(--color-text-muted);
     text-align: left;
   }
-  .cards-table__actions { justify-content: flex-end; gap: 0.5rem; }
+  .cards-table__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 }
 
 @media (min-width: 768px) {
   .cards-table th, .cards-table td {
     padding: 0.75rem 1rem;
     text-align: left;
+    vertical-align: middle;
     border-bottom: 1px solid var(--color-border);
   }
   .cards-table th {
@@ -466,3 +467,119 @@ a { color: var(--color-secondary); }
 .toast--visible { opacity: 1; transform: translateY(0); }
 .toast--success { background: var(--color-success); }
 .toast--error { background: var(--color-danger); }
+
+/* ---------- Link do nome da carta na tabela ---------- */
+
+.cards-table__link {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.cards-table__link:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+/* ---------- Paginação ---------- */
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pagination__info {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 480px) {
+  .pagination { justify-content: center; text-align: center; }
+  .pagination__info { order: 3; width: 100%; }
+}
+
+/* ---------- Página de Detalhes ---------- */
+
+.detail-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.detail-back:hover { text-decoration: underline; }
+
+.detail-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .detail-card {
+    grid-template-columns: 260px 1fr;
+    padding: 2rem;
+  }
+}
+
+.detail-card__image-col { display: flex; justify-content: center; }
+
+.detail-card__image {
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 5 / 7;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+}
+
+/* sobrescreve o tamanho pequeno padrão do placeholder de miniatura pra
+   ocupar o espaço maior desta página */
+.detail-card__image.card-thumb--placeholder {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
+.detail-card__badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-card__title { margin: 0; font-size: 1.75rem; }
+.detail-card__subtitle {
+  margin: 0.15rem 0 1.25rem;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+}
+
+.detail-card__facts {
+  margin: 0 0 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-card__fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-card__fact dt { color: var(--color-text-muted); font-size: 0.9rem; }
+.detail-card__fact dd { margin: 0; font-weight: 600; text-align: right; }
+
+.detail-card__actions { display: flex; }

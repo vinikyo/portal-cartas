@@ -4,7 +4,6 @@
  * CardController
  *
  * Todas as rotas de /api/cards e /api/editions passam por aqui.
- * Toda ação exige autenticação (requireAuth), já que é área admin.
  */
 class CardController
 {
@@ -20,7 +19,7 @@ class CardController
     public function index(): void
     {
         $this->authService->requireAuth();
-        Response::success($this->cardService->list());
+        Response::success($this->cardService->list($_GET));
     }
 
     public function show(int $id): void
@@ -51,9 +50,27 @@ class CardController
     }
 
     /**
+     * GET /api/cards/{id}/image
+     *
+     * Serve o binário da imagem direto do banco. Propositalmente PÚBLICO
+     * (sem requireAuth): uma tag <img src="..."> do navegador não consegue
+     * mandar o header Authorization, então essa rota fica de fora do JWT
+     * — é só o binário da imagem, não dado sensível da carta.
+     */
+    public function image(int $id): void
+    {
+        $image = $this->cardService->getImage($id);
+
+        header('Content-Type: ' . $image['image_mime']);
+        header('Cache-Control: public, max-age=86400');
+        header('Content-Length: ' . strlen($image['image_data']));
+        echo $image['image_data'];
+        exit;
+    }
+
+    /**
      * GET /api/editions?game=magic
      * Simula a "fonte de dados" das edições exigida no enunciado.
-     * Em produção isso poderia vir de uma API externa; aqui lemos de um JSON local.
      */
     public function editions(): void
     {

@@ -15,7 +15,3 @@ define('SESSION_NAME', 'portal_cartas_session');
 // variável de ambiente diferente por deploy — nunca fixo no código.
 define('JWT_SECRET', getenv('JWT_SECRET') ?: 'troque-esta-chave-em-producao');
 define('JWT_EXPIRY_SECONDS', 60 * 60 * 8); // token válido por 8 horas
-
-define('UPLOADS_DIR', __DIR__ . '/../../public/uploads');
-define('MAX_UPLOAD_SIZE_BYTES', 5 * 1024 * 1024); // 5MB
-define('ALLOWED_UPLOAD_MIME_TYPES', ['image/jpeg', 'image/png', 'image/webp']);

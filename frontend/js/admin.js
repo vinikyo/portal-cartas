@@ -1,14 +1,13 @@
 // admin.js
-// Lógica da tela de gerenciamento de cartas: autenticação, CRUD, upload
-// de imagem, select em cascata e filtro da listagem.
+// Lógica da tela de gerenciamento de cartas: autenticação, listagem, filtro
+// e paginação (resolvidos no back-end: GET /cards?page=&per_page=&search=&
+// game=&rarity=) e ações da tabela. O formulário de criar/editar em si (o
+// modal) mora em card-modal.js, compartilhado com detail.html.
 
 let cardsCache = [];
-let editingCardId = null;
 let filters = { search: '', game: '', rarity: '' };
+let pagination = { page: 1, perPage: 12, total: 0, totalPages: 1 };
 
-// Captura qualquer erro/rejeição não tratada e loga no Console com um
-// prefixo bem visível. Ajuda a identificar rapidamente se algo está
-// quebrando o fluxo do DOM silenciosamente (ex: durante o upload de imagem).
 window.addEventListener('error', (event) => {
   console.error('[portal-cartas] Erro não tratado:', event.error || event.message);
 });
@@ -18,9 +17,33 @@ window.addEventListener('unhandledrejection', (event) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth();
+  CardModal.init({ onSaved: () => loadCards() });
   bindEvents();
-  loadCards();
+  await loadCards();
+  openEditFromUrlIfAny();
 });
+
+// se veio de um link antigo com "?edit=123" (ex: favorito salvo), já abre
+// o modal de edição — hoje em dia a edição a partir do detalhe abre o modal
+// direto na própria página de detalhes, sem precisar desse parâmetro.
+function openEditFromUrlIfAny() {
+  const params = new URLSearchParams(window.location.search);
+  const editId = Number(params.get('edit'));
+  if (!editId) return;
+
+  const card = cardsCache.find((c) => c.id === editId);
+  if (card) {
+    CardModal.open(card);
+  } else {
+    // a carta pode estar em outra página da listagem — busca direto
+    Api.get(`/cards/${editId}`)
+      .then((c) => CardModal.open(c))
+      .catch(() => showToast('Carta não encontrada.', 'error'));
+  }
+
+  // limpa o parâmetro da URL pra não reabrir o modal num refresh
+  window.history.replaceState({}, '', 'admin.html');
+}
 
 // ---------- Auth ----------
 
@@ -29,7 +52,6 @@ async function checkAuth() {
     window.location.href = 'login.html';
     return;
   }
-
   try {
     const user = await Api.get('/me');
     qs('#current-username').textContent = user.username;
@@ -45,54 +67,62 @@ function bindEvents() {
     window.location.href = 'login.html';
   });
 
-  qs('#new-card-button').addEventListener('click', () => openModal());
-
-  qsa('[data-close-modal]').forEach((el) =>
-    el.addEventListener('click', closeModal)
-  );
-
-  qs('#card_game').addEventListener('change', onGameChange);
-
-  // O botão Salvar não é mais type="submit" de propósito: em vários
-  // navegadores, escolher um arquivo no seletor nativo do input de imagem
-  // (confirmando com Enter/duplo-clique) dispara um submit IMPLÍCITO do
-  // formulário assim que o foco volta pra página — o que salvava a carta
-  // sem a imagem ainda enviada e fechava o modal sozinho. Com o botão como
-  // "button" e o save preso só ao clique dele, isso nunca mais acontece.
-  // O listener de 'submit' abaixo é só uma segurança extra, caso algum
-  // navegador ainda tente disparar o submit nativo por outro caminho.
-  qs('#card-form').addEventListener('submit', (event) => event.preventDefault());
-  qs('#save-card-button').addEventListener('click', onSubmitCard);
+  qs('#new-card-button').addEventListener('click', () => CardModal.open());
 
   qs('#cards-tbody').addEventListener('click', onTableClick);
-  qs('#image_file').addEventListener('change', onImageFileChange);
 
   qs('#filter-search').addEventListener('input', debounce((event) => {
-    filters.search = event.target.value.trim().toLowerCase();
-    renderTable();
-  }, 250));
+    filters.search = event.target.value.trim();
+    pagination.page = 1;
+    loadCards();
+  }, 300));
 
   qs('#filter-game').addEventListener('change', (event) => {
     filters.game = event.target.value;
-    renderTable();
+    pagination.page = 1;
+    loadCards();
   });
 
   qs('#filter-rarity').addEventListener('change', (event) => {
     filters.rarity = event.target.value;
-    renderTable();
+    pagination.page = 1;
+    loadCards();
   });
+
+  qs('#pagination-prev').addEventListener('click', () => goToPage(pagination.page - 1));
+  qs('#pagination-next').addEventListener('click', () => goToPage(pagination.page + 1));
 }
 
-// ---------- Listar cartas ----------
+function goToPage(page) {
+  if (page < 1 || page > pagination.totalPages || page === pagination.page) return;
+  pagination.page = page;
+  loadCards();
+  qs('#table-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ---------- Listar cartas (filtro + paginação resolvidos no back-end) ----------
 
 async function loadCards() {
   const loading = qs('#loading-state');
   loading.hidden = false;
   qs('#empty-state').hidden = true;
 
+  const params = new URLSearchParams({
+    page: pagination.page,
+    per_page: pagination.perPage,
+  });
+  if (filters.search) params.set('search', filters.search);
+  if (filters.game) params.set('game', filters.game);
+  if (filters.rarity) params.set('rarity', filters.rarity);
+
   try {
-    cardsCache = await Api.get('/cards');
+    const result = await Api.get(`/cards?${params.toString()}`);
+    cardsCache = result.items;
+    pagination.page = result.page;
+    pagination.total = result.total;
+    pagination.totalPages = result.total_pages;
     renderTable();
+    renderPagination();
   } catch (error) {
     showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
   } finally {
@@ -100,57 +130,51 @@ async function loadCards() {
   }
 }
 
-// filtra por texto (nome EN/PT/edição) + Card Game + Raridade,
-// usando os mesmos campos preenchidos no cadastro.
-function getFilteredCards() {
-  return cardsCache.filter((card) => {
-    if (filters.game && card.card_game !== filters.game) return false;
-    if (filters.rarity && card.rarity !== filters.rarity) return false;
-
-    if (filters.search) {
-      const haystack = [card.name_en, card.name_pt, card.edition_name]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      if (!haystack.includes(filters.search)) return false;
-    }
-
-    return true;
-  });
-}
-
 function renderTable() {
   const tbody = qs('#cards-tbody');
   const empty = qs('#empty-state');
-  const filtered = getFilteredCards();
 
   tbody.innerHTML = '';
 
-  if (filtered.length === 0) {
+  if (cardsCache.length === 0) {
     empty.hidden = false;
-    empty.textContent = cardsCache.length === 0
-      ? 'Nenhuma carta cadastrada ainda.'
-      : MESSAGES.NO_RESULTS;
+    const hasActiveFilter = filters.search || filters.game || filters.rarity;
+    empty.textContent = hasActiveFilter ? MESSAGES.NO_RESULTS : 'Nenhuma carta cadastrada ainda.';
     return;
   }
   empty.hidden = true;
 
-  filtered.forEach((card) => {
+  cardsCache.forEach((card) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Imagem">${cardImageHtml(card)}</td>
-      <td data-label="Nome (EN)">${escapeHtml(card.name_en)}</td>
+      <td data-label="Nome (EN)">
+        <a class="cards-table__link" href="detail.html?id=${card.id}">${escapeHtml(card.name_en)}</a>
+      </td>
       <td data-label="Nome (PT)">${escapeHtml(card.name_pt || '—')}</td>
       <td data-label="Card Game">${gameBadgeHtml(card)}</td>
       <td data-label="Edição">${escapeHtml(card.edition_name)}</td>
       <td data-label="Raridade">${rarityBadgeHtml(card)}</td>
-      <td class="cards-table__actions">
-        <button class="btn btn--small" data-action="edit" data-id="${card.id}">Editar</button>
-        <button class="btn btn--small btn--danger" data-action="delete" data-id="${card.id}">Excluir</button>
+      <td data-label="Ações">
+        <div class="cards-table__actions">
+          <a class="btn btn--small btn--ghost" href="detail.html?id=${card.id}">Ver</a>
+          <button class="btn btn--small" data-action="edit" data-id="${card.id}">Editar</button>
+          <button class="btn btn--small btn--danger" data-action="delete" data-id="${card.id}">Excluir</button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+function renderPagination() {
+  const nav = qs('#pagination');
+  const { page, totalPages, total } = pagination;
+
+  nav.hidden = total === 0;
+  qs('#pagination-info').textContent = `Página ${page} de ${totalPages} · ${total} carta${total === 1 ? '' : 's'}`;
+  qs('#pagination-prev').disabled = page <= 1;
+  qs('#pagination-next').disabled = page >= totalPages;
 }
 
 function gameBadgeHtml(card) {
@@ -165,7 +189,7 @@ function rarityBadgeHtml(card) {
 
 function cardImageHtml(card) {
   if (card.image_url) {
-    return `<img src="${escapeHtml(card.image_url)}" alt="Imagem de ${escapeHtml(card.name_en)}" class="card-thumb" />`;
+    return `<img src="${escapeHtml(API_BASE_URL + card.image_url)}" alt="Imagem de ${escapeHtml(card.name_en)}" class="card-thumb" />`;
   }
   return `<div class="card-thumb card-thumb--placeholder">${MESSAGES.NO_IMAGE}</div>`;
 }
@@ -187,7 +211,7 @@ async function onTableClick(event) {
   const card = cardsCache.find((c) => c.id === id);
 
   if (action === 'edit') {
-    if (card) openModal(card);
+    if (card) CardModal.open(card);
   }
 
   if (action === 'delete') {
@@ -196,6 +220,10 @@ async function onTableClick(event) {
     try {
       await Api.delete(`/cards/${id}`);
       showToast(MESSAGES.CARD_DELETED, 'success');
+      // se excluiu o último item da página atual (e não é a página 1), volta uma página
+      if (cardsCache.length === 1 && pagination.page > 1) {
+        pagination.page -= 1;
+      }
       loadCards();
     } catch (error) {
       showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
@@ -203,163 +231,4 @@ async function onTableClick(event) {
   }
 }
 
-// ---------- Upload de imagem ----------
 
-async function onImageFileChange(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const preview = qs('#image_preview');
-  const placeholder = qs('#image_preview_placeholder');
-
-  if (file.size > 5 * 1024 * 1024) {
-    showToast(MESSAGES.IMAGE_TOO_LARGE, 'error');
-    event.target.value = '';
-    return;
-  }
-
-  placeholder.hidden = false;
-  placeholder.textContent = MESSAGES.UPLOADING_IMAGE;
-  preview.hidden = true;
-
-  try {
-    const result = await Api.uploadImage(file);
-    qs('#image_url').value = result.url;
-    preview.src = result.url;
-    preview.hidden = false;
-    placeholder.hidden = true;
-  } catch (error) {
-    showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
-    placeholder.textContent = MESSAGES.NO_IMAGE;
-    placeholder.hidden = false;
-  }
-}
-
-// ---------- Modal / Formulário ----------
-
-function openModal(card = null) {
-  const form = qs('#card-form');
-  form.reset();
-  clearFieldErrors(form);
-  resetEditionSelect();
-  resetImageField();
-
-  editingCardId = card ? card.id : null;
-  qs('#modal-title').textContent = card ? 'Editar Carta' : 'Nova Carta';
-  qs('#card-id').value = card ? card.id : '';
-
-  if (card) {
-    qs('#name_en').value = card.name_en;
-    qs('#name_pt').value = card.name_pt || '';
-    qs('#rarity').value = card.rarity;
-
-    if (card.image_url) {
-      qs('#image_url').value = card.image_url;
-      const preview = qs('#image_preview');
-      preview.src = card.image_url;
-      preview.hidden = false;
-      qs('#image_preview_placeholder').hidden = true;
-    }
-
-    // dispara a busca de edições e, quando terminar, seleciona a atual
-    qs('#card_game').value = card.card_game;
-    onGameChange().then(() => {
-      qs('#edition_id').value = card.edition_id;
-    });
-  }
-
-  qs('#card-modal').hidden = false;
-}
-
-function resetImageField() {
-  qs('#image_file').value = '';
-  qs('#image_url').value = '';
-  qs('#image_preview').hidden = true;
-  const placeholder = qs('#image_preview_placeholder');
-  placeholder.hidden = false;
-  placeholder.textContent = MESSAGES.NO_IMAGE;
-}
-
-function closeModal() {
-  qs('#card-modal').hidden = true;
-  editingCardId = null;
-}
-
-async function onSubmitCard(event) {
-  if (event) event.preventDefault();
-  const form = qs('#card-form');
-  clearFieldErrors(form);
-
-  const editionSelect = qs('#edition_id');
-  const editionName = editionSelect.selectedOptions[0]
-    ? editionSelect.selectedOptions[0].textContent
-    : '';
-
-  const payload = {
-    name_en: qs('#name_en').value.trim(),
-    name_pt: qs('#name_pt').value.trim() || null,
-    card_game: qs('#card_game').value,
-    edition_id: editionSelect.value,
-    edition_name: editionName,
-    image_url: qs('#image_url').value || null,
-    rarity: qs('#rarity').value,
-  };
-
-  const button = qs('#save-card-button');
-  setButtonLoading(button, true, 'Salvando...');
-
-  try {
-    if (editingCardId) {
-      await Api.put(`/cards/${editingCardId}`, payload);
-    } else {
-      await Api.post('/cards', payload);
-    }
-    showToast(MESSAGES.CARD_SAVED, 'success');
-    closeModal();
-    loadCards();
-  } catch (error) {
-    if (error.errors) {
-      applyFieldErrors(form, error.errors);
-    }
-    showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
-  } finally {
-    setButtonLoading(button, false);
-  }
-}
-
-// ---------- Select em cascata (Card Game -> Edição) ----------
-
-function resetEditionSelect() {
-  const select = qs('#edition_id');
-  select.innerHTML = `<option value="">${MESSAGES.SELECT_GAME_FIRST}</option>`;
-  select.disabled = true;
-}
-
-async function onGameChange() {
-  const game = qs('#card_game').value;
-  const select = qs('#edition_id');
-
-  // ao trocar o jogo, a seleção anterior é sempre resetada
-  resetEditionSelect();
-
-  if (!game) return;
-
-  select.innerHTML = `<option value="">${MESSAGES.LOADING_EDITIONS}</option>`;
-  select.disabled = true;
-
-  try {
-    const editions = await Api.get(`/editions?game=${encodeURIComponent(game)}`);
-
-    select.innerHTML = '<option value="">Selecione...</option>';
-    editions.forEach((edition) => {
-      const option = document.createElement('option');
-      option.value = edition.id;
-      option.textContent = edition.name;
-      select.appendChild(option);
-    });
-    select.disabled = false;
-  } catch (error) {
-    select.innerHTML = '<option value="">Erro ao carregar edições</option>';
-    showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
-  }
-}

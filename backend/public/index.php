@@ -19,7 +19,6 @@ require __DIR__ . '/../src/Services/AuthService.php';
 require __DIR__ . '/../src/Services/CardService.php';
 require __DIR__ . '/../src/Controllers/AuthController.php';
 require __DIR__ . '/../src/Controllers/CardController.php';
-require __DIR__ . '/../src/Controllers/UploadController.php';
 
 // CORS liberado para desenvolvimento local (front e back em portas/origens diferentes).
 // Com JWT não dependemos mais de cookie entre origens, então Allow-Origin: *
@@ -41,7 +40,6 @@ $path = '/' . trim(preg_replace('#^/api#', '', $path), '/');
 
 $authController = new AuthController();
 $cardController = new CardController();
-$uploadController = new UploadController();
 
 try {
     // ---- Auth ----
@@ -56,11 +54,11 @@ try {
     } elseif ($path === '/editions' && $method === 'GET') {
         $cardController->editions();
 
-    // ---- Upload de imagem ----
-    } elseif ($path === '/uploads' && $method === 'POST') {
-        $uploadController->store();
+    // ---- Imagem da carta (rota própria, pública — ver CardController::image) ----
+    } elseif (preg_match('#^/cards/(\d+)/image$#', $path, $m) && $method === 'GET') {
+        $cardController->image((int) $m[1]);
 
-    // ---- Cards CRUD ----
+    // ---- Cards CRUD (a listagem aceita ?page=&per_page=&search=&game=&rarity=) ----
     } elseif ($path === '/cards' && $method === 'GET') {
         $cardController->index();
     } elseif ($path === '/cards' && $method === 'POST') {

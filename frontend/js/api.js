@@ -66,38 +66,4 @@ const Api = {
   delete(path) {
     return this.request(path, { method: 'DELETE' });
   },
-
-  // Upload de imagem: precisa ir como multipart/form-data, por isso não
-  // reaproveita o request() acima (que sempre manda Content-Type: json).
-  async uploadImage(file) {
-    const token = this.getToken();
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const response = await fetch(`${API_BASE_URL}/uploads`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-
-    let body = null;
-    try {
-      body = await response.json();
-    } catch (e) {
-      // ignore
-    }
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        this.clearToken();
-      }
-      throw new Error((body && body.message) || MESSAGES.GENERIC_ERROR);
-    }
-
-    if (!body || !body.data) {
-      throw new Error(MESSAGES.GENERIC_ERROR);
-    }
-
-    return body.data;
-  },
 };
