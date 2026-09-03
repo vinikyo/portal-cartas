@@ -86,6 +86,12 @@ body {
   line-height: 1.5;
 }
 
+.admin-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 a { color: var(--color-secondary); }
 
 /* ---------- Marca / wordmark (CSS puro, sem imagem) ---------- */
@@ -260,9 +266,10 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.5rem 0 0;
   background:
     linear-gradient(180deg, rgba(227, 36, 43, 0.06), var(--login-gradient-end) 220px),
     var(--color-bg);
@@ -273,9 +280,10 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
   border-radius: 14px;
   box-shadow: var(--shadow-md);
   padding: 2rem 1.75rem;
-  width: 100%;
+  width: min(380px, calc(100% - 3rem));
   max-width: 380px;
   border-top: 4px solid var(--color-primary);
+  margin: auto;
 }
 
 .login-card__brand {
@@ -308,7 +316,7 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 
 /* ---------- Conteúdo admin ---------- */
 
-.admin-content { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+.admin-content { padding: 1.25rem; max-width: 1200px; width: 100%; margin: 0 auto; flex: 1; }
 .admin-content__actions { margin-bottom: 1rem; display: flex; justify-content: flex-end; }
 
 /* ---------- Filtros ---------- */
@@ -712,6 +720,93 @@ html[data-theme="dark"] .badge--rarity-ultra_rare { background: #4b3217; color: 
 .pagination__info {
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+/* ---------- Rodapé ---------- */
+
+.site-footer {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface);
+  border-top: 2px solid var(--color-primary);
+  color: var(--color-text-muted);
+}
+
+.site-footer__inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+
+.site-footer__credit {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.site-footer__credit strong { color: var(--color-text); }
+
+.site-footer__links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.site-footer__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-secondary-dark);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.site-footer__links a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.site-footer__links a:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.site-footer__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.site-footer__icon--stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.login-page .site-footer { margin-top: 1.5rem; }
+
+@media (max-width: 767px) {
+  .site-footer__inner,
+  .site-footer__links {
+    justify-content: center;
+  }
+
+  .site-footer__inner {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 @media (max-width: 480px) {
