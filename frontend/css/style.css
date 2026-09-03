@@ -440,6 +440,10 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
     display: block;
     overflow: hidden;
   }
+
+  /* Mantém espaço de rolagem abaixo do último campo em navegadores mobile
+     que desenham as opções do select dentro da área visível do modal. */
+  .modal__footer { margin-bottom: 1rem; }
 }
 
 .table-wrapper {

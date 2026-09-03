@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal de Cartas — Gerenciador</title>
   <script src="js/theme.js"></script>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body class="admin-page">
   <header class="topbar">
@@ -163,6 +163,20 @@
         </div>
 
         <div class="form-group">
+          <label for="rarity">Raridade *</label>
+          <select id="rarity" name="rarity" required>
+            <option value="">Selecione...</option>
+            <option value="common">Comum</option>
+            <option value="uncommon">Incomum</option>
+            <option value="rare">Rara</option>
+            <option value="super_rare">Super Rara</option>
+            <option value="ultra_rare">Ultra Rara</option>
+            <option value="secret_rare">Secreta Rara</option>
+          </select>
+          <span class="field-error" data-error-for="rarity"></span>
+        </div>
+
+        <div class="form-group">
           <label for="image_file">Imagem da Carta</label>
 
           <div class="image-upload">
@@ -189,20 +203,6 @@
 
           <input type="hidden" id="image_url" name="image_url" />
           <span class="field-error" data-error-for="image_url"></span>
-        </div>
-
-        <div class="form-group">
-          <label for="rarity">Raridade *</label>
-          <select id="rarity" name="rarity" required>
-            <option value="">Selecione...</option>
-            <option value="common">Comum</option>
-            <option value="uncommon">Incomum</option>
-            <option value="rare">Rara</option>
-            <option value="super_rare">Super Rara</option>
-            <option value="ultra_rare">Ultra Rara</option>
-            <option value="secret_rare">Secreta Rara</option>
-          </select>
-          <span class="field-error" data-error-for="rarity"></span>
         </div>
 
         <div class="modal__footer">
