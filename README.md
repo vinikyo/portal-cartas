@@ -34,7 +34,7 @@ Nada aqui substitui um item obrigatório — são funcionalidades extras em cima
 
 Deploy de teste rodando no Railway (MySQL + back-end PHP + front-end estático, cada um em um serviço separado):
 
-- **Front-end:** [marvelous-clarity-production-3243.up.railway.app/login.html](https://marvelous-clarity-production-3243.up.railway.app/login.html)
+- **Front-end:** https://marvelous-clarity-production-3243.up.railway.app/login.html
 - **API:** https://backend-production-ec5a.up.railway.app/api
 - **Login de teste:** ver seção [Credenciais de teste](#credenciais-de-teste) abaixo.
 
