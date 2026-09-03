@@ -13,6 +13,15 @@ const API_BASE_URL = (() => {
     : 'https://backend-production-ec5a.up.railway.app/api';
 })();
 
+// Precisa bater exatamente com o tamanho das colunas em
+// backend/database/schema.sql (VARCHAR(150)/VARCHAR(50)) — é o que permite
+// validar no campo, antes de qualquer requisição, sem duplicar números soltos
+// pelo código.
+const FIELD_LIMITS = {
+  name_en: 150,
+  name_pt: 150,
+};
+
 const MESSAGES = {
   LOGIN_ERROR: 'Usuário ou senha inválidos.',
   LOGIN_EMPTY: 'Preencha usuário e senha.',
@@ -21,6 +30,10 @@ const MESSAGES = {
   CARD_DELETED: 'Carta excluída com sucesso.',
   CONFIRM_DELETE: (name) => `Tem certeza que deseja excluir "${name}"? Essa ação não pode ser desfeita.`,
   FIELD_REQUIRED: 'Este campo é obrigatório.',
+  FIELD_TOO_LONG: (label, max) => `${label} deve ter no máximo ${max} caracteres.`,
+  REQUEST_TIMEOUT: 'O servidor demorou demais para responder. Tente novamente.',
+  NETWORK_ERROR: 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.',
+  RATE_LIMITED: 'Muitas requisições em pouco tempo. Aguarde um instante e tente novamente.',
   LOADING_EDITIONS: 'Carregando edições...',
   SELECT_GAME_FIRST: 'Selecione um Card Game primeiro',
   UPLOADING_IMAGE: 'Enviando imagem...',

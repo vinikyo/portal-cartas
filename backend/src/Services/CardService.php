@@ -114,7 +114,7 @@ class CardService
         [, $mime, $base64] = $matches;
 
         if (!in_array($mime, self::ALLOWED_IMAGE_MIME, true)) {
-            Response::error('Formato de imagem não suportado. Use JPG, PNG ou WEBP.', 422);
+            Response::error('Formato de imagem não suportado. Use JPG, PNG ou WEBP.', 415);
         }
 
         $binary = base64_decode($base64, true);
@@ -123,7 +123,7 @@ class CardService
         }
 
         if (strlen($binary) > self::MAX_IMAGE_BYTES) {
-            Response::error('Imagem muito grande (máximo 5MB).', 422);
+            Response::error('Imagem muito grande (máximo 5MB).', 413);
         }
 
         return ['image_mime' => $mime, 'image_data' => $binary];
@@ -134,10 +134,14 @@ class CardService
         $validator = new Validator();
         $validator
             ->required($data, 'name_en', 'Nome em inglês')
+            ->maxLength($data, 'name_en', 150, 'Nome em inglês')
+            ->maxLength($data, 'name_pt', 150, 'Nome em português')
             ->required($data, 'card_game', 'Card Game')
             ->in($data, 'card_game', self::GAMES, 'Card Game')
             ->required($data, 'edition_id', 'Edição')
+            ->maxLength($data, 'edition_id', 50, 'Edição')
             ->required($data, 'edition_name', 'Edição')
+            ->maxLength($data, 'edition_name', 150, 'Edição')
             ->required($data, 'rarity', 'Raridade')
             ->in($data, 'rarity', self::RARITIES, 'Raridade');
 

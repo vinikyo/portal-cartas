@@ -34,6 +34,19 @@ class Validator
         return $this;
     }
 
+    /**
+     * mb_strlen (não strlen) porque conta caracteres, não bytes — mesma
+     * lógica de contagem que o VARCHAR do MySQL usa, então o limite aqui
+     * bate exatamente com o tamanho da coluna no banco.
+     */
+    public function maxLength(array $data, string $field, int $max, string $label): self
+    {
+        if (isset($data[$field]) && mb_strlen((string) $data[$field]) > $max) {
+            $this->errors[$field] = "$label deve ter no máximo $max caracteres.";
+        }
+        return $this;
+    }
+
     public function isValid(): bool
     {
         return empty($this->errors);

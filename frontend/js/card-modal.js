@@ -28,6 +28,48 @@ const CardModal = (() => {
     qs('#card-form').addEventListener('submit', (event) => event.preventDefault());
     qs('#save-card-button').addEventListener('click', onSubmitCard);
     qs('#image_file').addEventListener('change', onImageFileChange);
+
+    Object.keys(FIELD_LIMITS).forEach(bindLengthCounter);
+  }
+
+  // ---------- Limite de caracteres (name_en / name_pt) ----------
+
+  // O atributo HTML `maxlength` já limita a digitação normal, mas colar um
+  // texto muito longo tem comportamento inconsistente em alguns navegadores
+  // mobile (o valor pode passar do limite até a próxima tecla apertada). Por
+  // isso: 1) corta o excesso a cada 'input' (cobre o caso do paste), 2) mostra
+  // um contador ao vivo, e 3) valida de novo antes de enviar — assim o limite
+  // aparece como validação do próprio campo, nunca como erro de banco.
+  function bindLengthCounter(field) {
+    const input = qs(`#${field}`);
+    const counter = qs(`[data-counter-for="${field}"]`);
+    const max = FIELD_LIMITS[field];
+
+    const update = () => {
+      if (input.value.length > max) {
+        input.value = input.value.slice(0, max);
+      }
+      const len = input.value.length;
+      counter.textContent = `${len}/${max}`;
+      counter.classList.toggle('field-hint--warning', len >= max * 0.9 && len < max);
+      counter.classList.toggle('field-hint--danger', len >= max);
+    };
+
+    input.addEventListener('input', update);
+    input.dataset.counterUpdate = 'bound';
+    input._updateCounter = update; // reaproveitado por open() ao preencher valores existentes
+  }
+
+  function validateLengths() {
+    const errors = {};
+    Object.entries(FIELD_LIMITS).forEach(([field, max]) => {
+      const input = qs(`#${field}`);
+      if (input.value.length > max) {
+        const label = qs(`label[for="${field}"]`).textContent.replace(/\s*\*$/, '');
+        errors[field] = MESSAGES.FIELD_TOO_LONG(label, max);
+      }
+    });
+    return errors;
   }
 
   function open(card = null) {
@@ -59,6 +101,11 @@ const CardModal = (() => {
         qs('#edition_id').value = card.edition_id;
       });
     }
+
+    // atualiza o contador de caracteres pro valor atual do campo (0 no caso
+    // de carta nova, já que form.reset() limpou tudo acima; o valor real da
+    // carta no caso de edição)
+    Object.keys(FIELD_LIMITS).forEach((field) => qs(`#${field}`)._updateCounter());
 
     qs('#card-modal').hidden = false;
   }
@@ -149,6 +196,12 @@ const CardModal = (() => {
     if (event) event.preventDefault();
     const form = qs('#card-form');
     clearFieldErrors(form);
+
+    const lengthErrors = validateLengths();
+    if (Object.keys(lengthErrors).length > 0) {
+      applyFieldErrors(form, lengthErrors);
+      return;
+    }
 
     const editionSelect = qs('#edition_id');
     const editionName = editionSelect.selectedOptions[0]

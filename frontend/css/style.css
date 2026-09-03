@@ -165,6 +165,24 @@ a { color: var(--color-secondary); }
   min-height: 1em;
 }
 
+.form-group__footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.form-group__footer .field-error { flex: 1; }
+
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.field-hint--warning { color: #b45309; font-weight: 700; }
+.field-hint--danger { color: var(--color-danger); font-weight: 700; }
+
 /* ---------- Tela de Login ---------- */
 
 .login-page {

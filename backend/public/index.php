@@ -11,6 +11,8 @@
 require __DIR__ . '/../src/Config/Constants.php';
 require __DIR__ . '/../src/Config/Database.php';
 require __DIR__ . '/../src/Utils/Response.php';
+require __DIR__ . '/../src/Utils/Request.php';
+require __DIR__ . '/../src/Utils/RateLimiter.php';
 require __DIR__ . '/../src/Utils/Validator.php';
 require __DIR__ . '/../src/Utils/Jwt.php';
 require __DIR__ . '/../src/Models/User.php';
@@ -38,41 +40,59 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 // remove o prefixo /api caso exista, e barras extras
 $path = '/' . trim(preg_replace('#^/api#', '', $path), '/');
 
-$authController = new AuthController();
-$cardController = new CardController();
-
 try {
-    // ---- Auth ----
-    if ($path === '/login' && $method === 'POST') {
-        $authController->login();
-    } elseif ($path === '/logout' && $method === 'POST') {
-        $authController->logout();
-    } elseif ($path === '/me' && $method === 'GET') {
-        $authController->me();
+    // Instanciar os controllers aqui dentro (e não antes do try) importa:
+    // o construtor de CardController já abre a conexão com o banco (ver
+    // Card::__construct), então se o MySQL estiver fora do ar isso lança
+    // uma PDOException — e só passa pelo nosso Response::exception() (que
+    // nunca vaza mensagem crua de banco) se estiver dentro do try.
+    $authController = new AuthController();
+    $cardController = new CardController();
 
-    // ---- Editions (select em cascata) ----
-    } elseif ($path === '/editions' && $method === 'GET') {
-        $cardController->editions();
+    // 10 requisições/s por IP. Roda antes do roteamento: qualquer rota
+    // (existente ou não) conta pro limite, senão dava pra descobrir rotas
+    // válidas só testando até parar de tomar 429.
+    RateLimiter::check();
 
-    // ---- Imagem da carta (rota própria, pública — ver CardController::image) ----
-    } elseif (preg_match('#^/cards/(\d+)/image$#', $path, $m) && $method === 'GET') {
-        $cardController->image((int) $m[1]);
+    // Tabela de rotas: [método, regex do path, handler]. Guardamos TODOS os
+    // métodos que casam com o path (independente do método bater) pra poder
+    // responder 405 (rota existe, método errado) em vez de 404 quando for
+    // o caso — são erros diferentes e o cliente se beneficia de saber qual é.
+    $routes = [
+        ['POST',   '#^/login$#',             fn($m) => $authController->login()],
+        ['POST',   '#^/logout$#',            fn($m) => $authController->logout()],
+        ['GET',    '#^/me$#',                fn($m) => $authController->me()],
+        ['GET',    '#^/editions$#',          fn($m) => $cardController->editions()],
+        ['GET',    '#^/cards/(\d+)/image$#', fn($m) => $cardController->image((int) $m[1])],
+        ['GET',    '#^/cards$#',             fn($m) => $cardController->index()],
+        ['POST',   '#^/cards$#',             fn($m) => $cardController->store()],
+        ['GET',    '#^/cards/(\d+)$#',       fn($m) => $cardController->show((int) $m[1])],
+        ['PUT',    '#^/cards/(\d+)$#',       fn($m) => $cardController->update((int) $m[1])],
+        ['DELETE', '#^/cards/(\d+)$#',       fn($m) => $cardController->destroy((int) $m[1])],
+    ];
 
-    // ---- Cards CRUD (a listagem aceita ?page=&per_page=&search=&game=&rarity=) ----
-    } elseif ($path === '/cards' && $method === 'GET') {
-        $cardController->index();
-    } elseif ($path === '/cards' && $method === 'POST') {
-        $cardController->store();
-    } elseif (preg_match('#^/cards/(\d+)$#', $path, $m) && $method === 'GET') {
-        $cardController->show((int) $m[1]);
-    } elseif (preg_match('#^/cards/(\d+)$#', $path, $m) && $method === 'PUT') {
-        $cardController->update((int) $m[1]);
-    } elseif (preg_match('#^/cards/(\d+)$#', $path, $m) && $method === 'DELETE') {
-        $cardController->destroy((int) $m[1]);
+    $handler = null;
+    $handlerArgs = [];
+    $allowedMethodsForPath = [];
 
+    foreach ($routes as [$routeMethod, $pattern, $routeHandler]) {
+        if (preg_match($pattern, $path, $m)) {
+            $allowedMethodsForPath[] = $routeMethod;
+            if ($routeMethod === $method) {
+                $handler = $routeHandler;
+                $handlerArgs = $m;
+            }
+        }
+    }
+
+    if ($handler) {
+        $handler($handlerArgs);
+    } elseif (!empty($allowedMethodsForPath)) {
+        header('Allow: ' . implode(', ', array_unique($allowedMethodsForPath)));
+        Response::error('Método não permitido para esta rota.', 405);
     } else {
         Response::error('Rota não encontrada.', 404);
     }
 } catch (Throwable $e) {
-    Response::error('Erro interno: ' . $e->getMessage(), 500);
+    Response::exception($e);
 }

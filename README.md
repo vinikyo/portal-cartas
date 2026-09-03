@@ -29,6 +29,8 @@ Nada aqui substitui um item obrigatório — são funcionalidades extras em cima
 - **Filtro por texto/Card Game/Raridade** e **paginação**, ambos resolvidos no back-end
 - **Página de detalhes** de cada carta (`detail.html?id=`)
 - Imagem guardada como blob no MySQL (decisão técnica pra sobreviver a deploys em serviços com disco efêmero, como Railway)
+- **Rate limit de 10 req/s por IP** e **timeout de 15s no front-end**, pra API não ficar vulnerável a rajada de requisições nem o front travar esperando pra sempre (ver [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http))
+- **Tratamento de erro centralizado**: qualquer exceção não prevista (erro de SQL, banco fora do ar, etc.) é traduzida pra um status HTTP + mensagem apropriados — o cliente nunca recebe detalhe cru de banco de dados
 
 ## Aplicação no ar
 
@@ -128,7 +130,7 @@ portal-cartas/
 │   │   ├── Models/         # acesso direto às tabelas (User, Card)
 │   │   ├── Services/       # regras de negócio (AuthService, CardService)
 │   │   ├── Controllers/    # recebem a request e devolvem JSON (Auth, Card)
-│   │   └── Utils/          # Response, Validator e Jwt (JWT manual, sem lib)
+│   │   └── Utils/          # Response (+ tratamento de erro), Request, RateLimiter, Validator e Jwt (JWT manual, sem lib)
 │   ├── data/editions.json  # fonte de dados das edições por jogo
 │   └── database/           # schema.sql, seed.sql, seed_admin.php e scripts de migração
 └── frontend/
@@ -188,6 +190,33 @@ O campo de imagem do formulário aceita um arquivo real (JPG, PNG ou WEBP, até 
 | GET    | `/api/editions?game=magic`      | Lista edições de um Card Game                 |
 
 Todas as rotas acima, exceto `/login` e `/cards/{id}/image`, exigem o header `Authorization: Bearer <token>` (retornam `401` sem ele ou com token expirado/inválido).
+
+## Tratamento de erros e status HTTP
+
+Toda resposta de erro segue o mesmo formato (`{ success: false, message, errors? }`) e usa o código HTTP que melhor descreve o problema — nunca `200` com um `success: false` escondido no corpo:
+
+| Código | Quando a API responde isso |
+|--------|------------------------------|
+| `400` | Corpo da requisição não é um JSON válido |
+| `401` | Sem token, token inválido/expirado, ou usuário/senha errados no login |
+| `404` | Rota inexistente, ou carta/imagem com o `id` informado não existe |
+| `405` | Rota existe, mas o método HTTP não é o esperado (ex: `DELETE /login`) — vem com header `Allow` listando os métodos aceitos |
+| `409` | Conflito no banco (ex: violação de constraint única) |
+| `413` | Imagem enviada maior que 5MB |
+| `415` | Imagem enviada num formato diferente de JPG/PNG/WEBP |
+| `422` | Corpo é um JSON válido, mas os dados falham na validação (campo obrigatório faltando, valor de `enum` inválido, nome maior que o limite da coluna, etc.) — vem com `errors: { campo: mensagem }` |
+| `429` | Mais de 10 requisições no último segundo, vindas do mesmo IP (ver abaixo) |
+| `500` | Qualquer erro não previsto (ex: erro de SQL) |
+| `503` | Banco de dados fora do ar / inacessível |
+
+**Erro de banco nunca chega cru no cliente.** Qualquer exceção que escape dos Controllers/Services (ex: uma `PDOException`) passa por `Response::exception()`, que:
+- inspeciona o `SQLSTATE` e traduz pra um status + mensagem seguros (`22001` string truncada → `422`, `23000` registro duplicado → `409`, sem conexão com o banco → `503`, qualquer outro → `500` genérico);
+- grava a mensagem real no `error_log()` do servidor, pra continuar debugável por quem tem acesso a ele;
+- nunca inclui `$e->getMessage()` de uma exceção de banco na resposta JSON.
+
+**Rate limit (`RateLimiter.php`).** Limite de 10 requisições/segundo por IP, numa janela deslizante guardada em arquivo (com `flock()`, sem depender de Redis/Memcached/extensão nenhuma). Passou do limite, responde `429` com header `Retry-After: 1`. É por IP, então um cliente abusando não derruba o acesso dos outros.
+
+**Timeout no front-end (`api.js`).** Todo `fetch` usa `AbortController` com limite de 15s — sem isso, um back-end travado ou fora do ar deixaria a tela carregando pra sempre, já que o navegador não tem timeout curto o suficiente por padrão. Estourou o tempo, a chamada é cancelada e o usuário vê uma mensagem de erro em vez de uma tela travada; falha de rede (sem internet, CORS bloqueado, servidor fora do ar) tem uma mensagem própria também.
 
 ## Melhorias futuras (fora do escopo desta entrega)
 

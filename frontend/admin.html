@@ -94,13 +94,19 @@
         <div class="form-group">
           <label for="name_en">Nome em inglês *</label>
           <input type="text" id="name_en" name="name_en" required maxlength="150" />
-          <span class="field-error" data-error-for="name_en"></span>
+          <div class="form-group__footer">
+            <span class="field-error" data-error-for="name_en"></span>
+            <span class="field-hint" data-counter-for="name_en">0/150</span>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="name_pt">Nome em português</label>
           <input type="text" id="name_pt" name="name_pt" maxlength="150" />
-          <span class="field-error" data-error-for="name_pt"></span>
+          <div class="form-group__footer">
+            <span class="field-error" data-error-for="name_pt"></span>
+            <span class="field-hint" data-counter-for="name_pt">0/150</span>
+          </div>
         </div>
 
         <div class="form-group">
