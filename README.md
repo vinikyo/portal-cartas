@@ -2,10 +2,6 @@
 
 Portal para gestão de cartas (Magic, Pokémon e Yu-Gi-Oh!), com autenticação por login e senha.
 
-## Variáveis de ambiente
-
-A aplicação exige `JWT_SECRET` e não possui segredo padrão. Para rodar com Docker, crie um arquivo `.env` na raiz a partir de `.env.example` e coloque uma chave aleatória longa. A imagem já não depende de arquivos em `backend/public/uploads`.
-
 ## Escopo: o que era pedido vs. o que foi adicionado
 
 ### ✅ Requisitos do desafio (100% atendidos)
@@ -33,7 +29,7 @@ Nada aqui substitui um item obrigatório — são funcionalidades extras em cima
 - **Filtro por texto/Card Game/Raridade** e **paginação**, ambos resolvidos no back-end
 - **Página de detalhes** de cada carta (`detail.html?id=`)
 - Imagem guardada como blob no MySQL (decisão técnica pra sobreviver a deploys em serviços com disco efêmero, como Railway)
-- **Timeout de 5s no front-end**, pra API não deixar a tela travada esperando pra sempre (ver [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http))
+- **Rate limit de 10 req/s por IP** e **timeout de 5s no front-end**, pra API não ficar vulnerável a rajada de requisições nem o front travar esperando pra sempre (ver [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http))
 - **Tratamento de erro centralizado**: qualquer exceção não prevista (erro de SQL, banco fora do ar, etc.) é traduzida pra um status HTTP + mensagem apropriados — o cliente nunca recebe detalhe cru de banco de dados
 
 ## Aplicação no ar
@@ -59,8 +55,6 @@ Deploy de teste rodando no Railway (MySQL + back-end PHP + front-end estático, 
 Pré-requisitos: Docker e Docker Compose instalados.
 
 ```bash
-cp .env.example .env
-# edite .env e troque JWT_SECRET por uma chave aleatória longa
 docker-compose up -d
 docker-compose exec app php database/seed_admin.php
 ```
@@ -103,13 +97,23 @@ Depois, abra `http://localhost:5500/login.html` no navegador (sirva a pasta `fro
 
 ## Screenshots
 
-| Gerenciador (desktop) | Gerenciador (mobile) |
-|-------------------------|-------------------------|
-| ![Gerenciador desktop](docs/screenshots/gerenciador-desktop.jpg) | ![Gerenciador mobile](docs/screenshots/gerenciador-mobile.jpg) |
+### Gerenciador - desktop
 
-| Editar carta (modal) | Detalhes (desktop) | Detalhes (mobile) |
-|-------------------------|-------------------------|-------------------------|
-| ![Editar carta](docs/screenshots/editar-carta-modal.jpg) | ![Detalhes desktop](docs/screenshots/detalhes-desktop.jpg) | ![Detalhes mobile](docs/screenshots/detalhes-mobile.jpg) |
+![Gerenciador de cartas no modo escuro](docs/screenshots/gerenciador-desktop.jpg)
+
+### Detalhes da carta - desktop
+
+![Detalhes da carta no modo escuro](docs/screenshots/detalhes-desktop.jpg)
+
+### Layout responsivo - mobile
+
+| Gerenciador | Detalhes da carta |
+|---|---|
+| ![Gerenciador mobile no modo escuro](docs/screenshots/gerenciador-mobile.jpg) | ![Detalhes da carta no mobile em modo escuro](docs/screenshots/detalhes-mobile.jpg) |
+
+### Edição da carta
+
+![Modal de edição da carta no modo escuro](docs/screenshots/editar-carta-modal.jpg)
 
 ## Credenciais de teste
 
@@ -136,7 +140,7 @@ portal-cartas/
 │   │   ├── Models/         # acesso direto às tabelas (User, Card)
 │   │   ├── Services/       # regras de negócio (AuthService, CardService)
 │   │   ├── Controllers/    # recebem a request e devolvem JSON (Auth, Card)
-│   │   └── Utils/          # Response (+ tratamento de erro), Request, Validator e Jwt (JWT manual, sem lib)
+│   │   └── Utils/          # Response (+ tratamento de erro), Request, RateLimiter, Validator e Jwt (JWT manual, sem lib)
 │   ├── data/editions.json  # fonte de dados das edições por jogo
 │   └── database/           # schema.sql, seed.sql, seed_admin.php e scripts de migração
 └── frontend/
@@ -170,17 +174,19 @@ A API segue arquitetura em camadas: **Controller** (recebe a request) → **Serv
 
 6. **Nome longo trunca com "…" em vez de esticar a tabela, com popover pra ver o texto completo.** Algumas cartas (principalmente Yu-Gi-Oh!) têm nomes com 40-50+ caracteres, e deixar isso quebrar o alinhamento da tabela numa tela cheia de dados tabulares prejudica a leitura de todo o resto. A coluna de nome corta o texto com reticências (tanto na visão desktop quanto na de "cards" do mobile) e, ao clicar num nome cortado, um pequeno popover mostra o texto completo sem navegar pra outra tela — só intercepta o clique quando o nome de fato está cortado, então nomes curtos continuam funcionando como link normal pra página de detalhes.
 
+7. **Tema claro/escuro persistente.** O portal respeita a preferência de cores do sistema na primeira visita e oferece um controle em todas as telas. Quando o usuário escolhe um tema, a preferência fica salva no navegador e é reaplicada antes da folha de estilos carregar, evitando troca visível de cores ao navegar.
+
 ## Paginação e filtro (resolvidos no back-end)
 
 `GET /api/cards` aceita `page`, `per_page` (padrão 12, máx. 50), `search`, `game` e `rarity` como query string, e devolve `{ items, page, per_page, total, total_pages }`. O front manda esses parâmetros a cada troca de filtro ou de página — a busca por texto compara nome em inglês, português e edição (ex: buscar "pikachu" mostra só os Pikachus); os filtros de Card Game e Raridade usam os mesmos campos do cadastro. Abaixo da tabela há os controles de "Anterior/Próxima" com o total de páginas.
 
 ## Página de detalhes
 
-Cada carta tem uma página própria em `detail.html?id={id}` (link "Ver" na listagem, ou clicando no nome da carta), mostrando a imagem em tamanho maior e os mesmos dados do cadastro (nome EN/PT, Card Game, Edição, Raridade). O botão "Editar esta carta" abre o mesmo modal de edição do gerenciador direto nessa página, sem navegação.
+Cada carta tem uma página própria em `detail.html?id={id}` (ícone de olho na listagem, ou clicando no nome da carta), mostrando a imagem em tamanho maior e os mesmos dados do cadastro (nome EN/PT, Card Game, Edição, Raridade). O botão "Editar", acompanhado do ícone de lápis, abre o mesmo modal de edição do gerenciador direto nessa página, sem navegação.
 
 ## Upload de imagem
 
-O campo de imagem do formulário aceita um arquivo real (JPG, PNG ou WEBP, até 5MB), lido no navegador (`FileReader`) e enviado como base64 dentro do próprio JSON de criação/edição da carta (`image_base64`) — não existe mais um endpoint de upload separado. O back-end decodifica, valida tipo/tamanho e grava o binário direto no banco. Ao editar uma carta sem trocar o arquivo, a imagem antiga é mantida; ao editar uma carta existente, é possível marcar "Remover imagem atual" para limpar o blob. A imagem é servida por `GET /api/cards/{id}/image`, uma rota pública de propósito — uma tag `<img>` não consegue mandar o header `Authorization`, então servir o binário sem exigir login é o jeito correto de fazer isso com JWT (o restante da API continua protegido).
+O campo de imagem do formulário aceita um arquivo real (JPG, PNG ou WEBP, até 5MB), lido no navegador (`FileReader`) e enviado como base64 dentro do próprio JSON de criação/edição da carta (`image_base64`) — não existe mais um endpoint de upload separado. O back-end decodifica, valida tipo/tamanho e grava o binário direto no banco. Ao editar uma carta sem trocar o arquivo, a imagem antiga é mantida (o campo só é sobrescrito quando um arquivo novo é selecionado). A imagem é servida por `GET /api/cards/{id}/image`, uma rota pública de propósito — uma tag `<img>` não consegue mandar o header `Authorization`, então servir o binário sem exigir login é o jeito correto de fazer isso com JWT (o restante da API continua protegido).
 
 ## Endpoints da API
 
@@ -213,6 +219,7 @@ Toda resposta de erro segue o mesmo formato (`{ success: false, message, errors?
 | `413` | Imagem enviada maior que 5MB |
 | `415` | Imagem enviada num formato diferente de JPG/PNG/WEBP |
 | `422` | Corpo é um JSON válido, mas os dados falham na validação (campo obrigatório faltando, valor de `enum` inválido, nome maior que o limite da coluna, etc.) — vem com `errors: { campo: mensagem }` |
+| `429` | Mais de 10 requisições no último segundo, vindas do mesmo IP (ver abaixo) |
 | `500` | Qualquer erro não previsto (ex: erro de SQL) |
 | `503` | Banco de dados fora do ar / inacessível |
 
@@ -220,6 +227,8 @@ Toda resposta de erro segue o mesmo formato (`{ success: false, message, errors?
 - inspeciona o `SQLSTATE` e traduz pra um status + mensagem seguros (`22001` string truncada → `422`, `23000` registro duplicado → `409`, sem conexão com o banco → `503`, qualquer outro → `500` genérico);
 - grava a mensagem real no `error_log()` do servidor, pra continuar debugável por quem tem acesso a ele;
 - nunca inclui `$e->getMessage()` de uma exceção de banco na resposta JSON.
+
+**Rate limit (`RateLimiter.php`).** Limite de 10 requisições/segundo por IP, numa janela deslizante guardada em arquivo (com `flock()`, sem depender de Redis/Memcached/extensão nenhuma). Passou do limite, responde `429` com header `Retry-After: 1`. É por IP, então um cliente abusando não derruba o acesso dos outros.
 
 **Timeout no front-end (`api.js`).** Todo `fetch` usa `AbortController` com limite de 5s — sem isso, um back-end travado ou fora do ar deixaria a tela carregando pra sempre, já que o navegador não tem timeout curto o suficiente por padrão. Estourou o tempo, a chamada é cancelada e o usuário vê uma mensagem de erro em vez de uma tela travada; falha de rede (sem internet, CORS bloqueado, servidor fora do ar) tem uma mensagem própria também.
 

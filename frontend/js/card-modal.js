@@ -4,92 +4,22 @@
 // de sempre navegar de volta pro gerenciador.
 //
 // Como usar numa página:
-//   1. Carregar este arquivo DEPOIS de consts.js/utils.js/api.js e ANTES do
-//      script da própria página. O markup é criado aqui uma única vez.
-//   2. No DOMContentLoaded da página, chamar:
-//   3. Pra abrir: CardModal.open(card) (edição) ou CardModal.open() (nova).
+//   1. Incluir o markup do modal (#card-modal, ver admin.html) no HTML.
+//   2. Carregar este arquivo DEPOIS de consts.js/utils.js/api.js e ANTES do
+//      script da própria página.
+//   3. No DOMContentLoaded da página, chamar:
+//        CardModal.init({ onSaved: (card) => { ... atualiza a tela ... } });
+//   4. Pra abrir: CardModal.open(card) (edição) ou CardModal.open() (nova).
 
 const CardModal = (() => {
   let editingCardId = null;
   let selectedImageBase64 = null; // null = não trocou a imagem nesta edição
   let originalImageUrl = null;
+  let shouldRemoveImage = false;
   let onSaved = () => {};
-  const editionsCache = Object.create(null);
-
-  function ensureModal() {
-    if (qs('#card-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'card-modal';
-    modal.className = 'modal';
-    modal.hidden = true;
-    modal.innerHTML = `
-      <div class="modal__backdrop" data-close-modal></div>
-      <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="modal__header">
-          <h2 id="modal-title">Nova Carta</h2>
-          <button type="button" class="modal__close" data-close-modal aria-label="Fechar">&times;</button>
-        </div>
-        <form id="card-form" class="form" novalidate>
-          <div class="form-group">
-            <label for="name_en">Nome em inglês *</label>
-            <input type="text" id="name_en" name="name_en" required maxlength="150" />
-            <div class="form-group__footer"><span class="field-error" data-error-for="name_en"></span><span class="field-hint" data-counter-for="name_en">0/150</span></div>
-          </div>
-          <div class="form-group">
-            <label for="name_pt">Nome em português</label>
-            <input type="text" id="name_pt" name="name_pt" maxlength="150" />
-            <div class="form-group__footer"><span class="field-error" data-error-for="name_pt"></span><span class="field-hint" data-counter-for="name_pt">0/150</span></div>
-          </div>
-          <div class="form-group">
-            <label for="card_game">Card Game *</label>
-            <select id="card_game" name="card_game" required>
-              <option value="">Selecione...</option>
-              <option value="magic">Magic: The Gathering</option>
-              <option value="pokemon">Pokémon</option>
-              <option value="yugioh">Yu-Gi-Oh!</option>
-            </select>
-            <span class="field-error" data-error-for="card_game"></span>
-          </div>
-          <div class="form-group">
-            <label for="edition_id">Edição *</label>
-            <select id="edition_id" name="edition_id" required disabled><option value="">Selecione um Card Game primeiro</option></select>
-            <span class="field-error" data-error-for="edition_id"></span>
-          </div>
-          <div class="form-group">
-            <label for="image_file">Imagem da Carta</label>
-            <div class="image-upload">
-              <div class="image-upload__preview-box">
-                <img id="image_preview" class="image-upload__preview" alt="Pré-visualização da carta" hidden />
-                <div id="image_preview_placeholder" class="card-thumb card-thumb--placeholder">Sem imagem</div>
-              </div>
-              <input type="file" id="image_file" accept="image/png, image/jpeg, image/webp" />
-            </div>
-            <div id="remove_image_group" class="image-upload__remove" hidden>
-              <label><input type="checkbox" id="remove_image" /> Remover imagem atual</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="rarity">Raridade *</label>
-            <select id="rarity" name="rarity" required>
-              <option value="">Selecione...</option>
-              <option value="common">Comum</option><option value="uncommon">Incomum</option><option value="rare">Rara</option>
-              <option value="super_rare">Super Rara</option><option value="ultra_rare">Ultra Rara</option><option value="secret_rare">Secreta Rara</option>
-            </select>
-            <span class="field-error" data-error-for="rarity"></span>
-          </div>
-          <div class="modal__footer">
-            <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
-            <button type="button" id="save-card-button" class="btn btn--primary">Salvar</button>
-          </div>
-        </form>
-      </div>`;
-    document.body.appendChild(modal);
-  }
 
   function init(options = {}) {
     onSaved = options.onSaved || (() => {});
-    ensureModal();
 
     qsa('[data-close-modal]').forEach((el) => el.addEventListener('click', close));
     qs('#card_game').addEventListener('change', onGameChange);
@@ -100,10 +30,7 @@ const CardModal = (() => {
     qs('#card-form').addEventListener('submit', (event) => event.preventDefault());
     qs('#save-card-button').addEventListener('click', onSubmitCard);
     qs('#image_file').addEventListener('change', onImageFileChange);
-    qs('#remove_image').addEventListener('change', onRemoveImageChange);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !qs('#card-modal').hidden) close();
-    });
+    qs('#remove-image-button').addEventListener('click', toggleImageRemoval);
 
     Object.keys(FIELD_LIMITS).forEach(bindLengthCounter);
   }
@@ -132,6 +59,7 @@ const CardModal = (() => {
     };
 
     input.addEventListener('input', update);
+    input.dataset.counterUpdate = 'bound';
     input._updateCounter = update; // reaproveitado por open() ao preencher valores existentes
   }
 
@@ -155,8 +83,8 @@ const CardModal = (() => {
     resetImageField();
 
     editingCardId = card ? card.id : null;
-    originalImageUrl = card?.image_url || null;
     qs('#modal-title').textContent = card ? 'Editar Carta' : 'Nova Carta';
+    qs('#card-id').value = card ? card.id : '';
 
     if (card) {
       qs('#name_en').value = card.name_en;
@@ -164,13 +92,12 @@ const CardModal = (() => {
       qs('#rarity').value = card.rarity;
 
       if (card.image_url) {
+        originalImageUrl = API_BASE_URL + card.image_url;
         const preview = qs('#image_preview');
-        preview.src = API_BASE_URL + card.image_url;
+        preview.src = originalImageUrl;
         preview.hidden = false;
         qs('#image_preview_placeholder').hidden = true;
-        qs('#remove_image_group').hidden = false;
-      } else {
-        qs('#remove_image_group').hidden = true;
+        qs('#remove-image-button').hidden = false;
       }
 
       // dispara a busca de edições e, quando terminar, seleciona a atual
@@ -185,27 +112,53 @@ const CardModal = (() => {
     // carta no caso de edição)
     Object.keys(FIELD_LIMITS).forEach((field) => qs(`#${field}`)._updateCounter());
 
-    qs('#remove_image').checked = false;
     qs('#card-modal').hidden = false;
   }
 
   function close() {
     qs('#card-modal').hidden = true;
-    qs('#remove_image').checked = false;
-    qs('#remove_image_group').hidden = true;
     editingCardId = null;
-    originalImageUrl = null;
   }
 
   // ---------- Imagem (lida no navegador e mandada em base64 junto do payload) ----------
 
   function resetImageField() {
     selectedImageBase64 = null;
+    originalImageUrl = null;
+    shouldRemoveImage = false;
     qs('#image_file').value = '';
     qs('#image_preview').hidden = true;
     const placeholder = qs('#image_preview_placeholder');
     placeholder.hidden = false;
     placeholder.textContent = MESSAGES.NO_IMAGE;
+    const removeButton = qs('#remove-image-button');
+    removeButton.hidden = true;
+    removeButton.classList.remove('is-active');
+    removeButton.setAttribute('aria-pressed', 'false');
+  }
+
+  function toggleImageRemoval() {
+    shouldRemoveImage = !shouldRemoveImage;
+    selectedImageBase64 = null;
+    qs('#image_file').value = '';
+
+    const button = qs('#remove-image-button');
+    button.classList.toggle('is-active', shouldRemoveImage);
+    button.setAttribute('aria-pressed', String(shouldRemoveImage));
+
+    const preview = qs('#image_preview');
+    const placeholder = qs('#image_preview_placeholder');
+
+    if (shouldRemoveImage) {
+      preview.hidden = true;
+      placeholder.textContent = 'Imagem será removida';
+      placeholder.hidden = false;
+      return;
+    }
+
+    preview.src = originalImageUrl;
+    preview.hidden = false;
+    placeholder.hidden = true;
   }
 
   function onImageFileChange(event) {
@@ -227,38 +180,18 @@ const CardModal = (() => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      selectedImageBase64 = reader.result;
-      qs('#remove_image').checked = false;
+      selectedImageBase64 = reader.result; // data:image/png;base64,....
+      shouldRemoveImage = false;
+      const removeButton = qs('#remove-image-button');
+      removeButton.classList.remove('is-active');
+      removeButton.setAttribute('aria-pressed', 'false');
       const preview = qs('#image_preview');
       preview.src = reader.result;
       preview.hidden = false;
       qs('#image_preview_placeholder').hidden = true;
-      qs('#remove_image_group').hidden = !originalImageUrl;
     };
     reader.onerror = () => showToast(MESSAGES.GENERIC_ERROR, 'error');
     reader.readAsDataURL(file);
-  }
-
-  function onRemoveImageChange(event) {
-    const checked = event.target.checked;
-    selectedImageBase64 = null;
-    qs('#image_file').value = '';
-
-    const preview = qs('#image_preview');
-    const placeholder = qs('#image_preview_placeholder');
-
-    if (checked) {
-      preview.hidden = true;
-      placeholder.hidden = false;
-      placeholder.textContent = MESSAGES.NO_IMAGE;
-      return;
-    }
-
-    if (originalImageUrl) {
-      preview.src = API_BASE_URL + originalImageUrl;
-      preview.hidden = false;
-      placeholder.hidden = true;
-    }
   }
 
   // ---------- Select em cascata (Card Game -> Edição) ----------
@@ -280,11 +213,7 @@ const CardModal = (() => {
     select.disabled = true;
 
     try {
-      let editions = editionsCache[game];
-      if (!editions) {
-        editions = await Api.get(`/editions?game=${encodeURIComponent(game)}`);
-        editionsCache[game] = editions;
-      }
+      const editions = await Api.get(`/editions?game=${encodeURIComponent(game)}`);
 
       select.innerHTML = '<option value="">Selecione...</option>';
       editions.forEach((edition) => {
@@ -331,8 +260,7 @@ const CardModal = (() => {
     // assim dá pra editar os outros campos sem precisar reenviar a imagem.
     if (selectedImageBase64) {
       payload.image_base64 = selectedImageBase64;
-    }
-    if (editingCardId && qs('#remove_image').checked) {
+    } else if (shouldRemoveImage) {
       payload.remove_image = true;
     }
 

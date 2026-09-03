@@ -31,14 +31,14 @@ class CardController
     public function store(): void
     {
         $this->authService->requireAuth();
-        $body = Request::jsonBody();
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         Response::success($this->cardService->create($body), 201);
     }
 
     public function update(int $id): void
     {
         $this->authService->requireAuth();
-        $body = Request::jsonBody();
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         Response::success($this->cardService->update($id, $body));
     }
 
@@ -62,7 +62,7 @@ class CardController
         $image = $this->cardService->getImage($id);
 
         header('Content-Type: ' . $image['image_mime']);
-        header('Cache-Control: public, max-age=86400, immutable');
+        header('Cache-Control: public, max-age=86400');
         header('Content-Length: ' . strlen($image['image_data']));
         echo $image['image_data'];
         exit;
@@ -83,14 +83,8 @@ class CardController
             Response::error('Card game inválido.', 422);
         }
 
-        // As edições vêm de um arquivo estático; o navegador pode reutilizar
-        // a resposta por uma hora mesmo quando o modal é reaberto.
-        header('Cache-Control: public, max-age=3600');
-
-        // Latência artificial só para demonstração/testes locais.
-        if (getenv('SIMULATE_LATENCY') === '1') {
-            usleep(400000);
-        }
+        // pequeno delay artificial pra deixar o loading state do front visível/testável
+        usleep(400000);
 
         Response::success($all[$game]);
     }

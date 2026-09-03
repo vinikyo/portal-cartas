@@ -63,8 +63,15 @@ class Card
             $params[':rarity'] = $filters['rarity'];
         }
         if (!empty($filters['search'])) {
-            $clauses[] = '(name_en LIKE :search OR name_pt LIKE :search OR edition_name LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+            // Prepared statements nativos do PDO/MySQL não permitem reutilizar
+            // o mesmo placeholder nomeado mais de uma vez na mesma query.
+            $search = '%' . $filters['search'] . '%';
+            $clauses[] = '(name_en LIKE :search_name_en
+                OR name_pt LIKE :search_name_pt
+                OR edition_name LIKE :search_edition_name)';
+            $params[':search_name_en'] = $search;
+            $params[':search_name_pt'] = $search;
+            $params[':search_edition_name'] = $search;
         }
 
         $where = $clauses ? 'WHERE ' . implode(' AND ', $clauses) : '';
@@ -99,7 +106,7 @@ class Card
         $sql = 'INSERT INTO cards
                 (name_en, name_pt, card_game, edition_id, edition_name, rarity, image_mime, image_data, created_at, updated_at)
                 VALUES
-                (:name_en, :name_pt, :card_game, :edition_id, :edition_name, :rarity, :image_mime, :image_data, NOW(6), NOW(6))';
+                (:name_en, :name_pt, :card_game, :edition_id, :edition_name, :rarity, :image_mime, :image_data, NOW(), NOW())';
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':name_en', $data['name_en']);
@@ -115,7 +122,7 @@ class Card
         return (int) $this->db->lastInsertId();
     }
 
-    public function update(int $id, array $data): bool
+    public function update(int $id, array $data): void
     {
         $sql = 'UPDATE cards SET
                     name_en = :name_en,
@@ -125,14 +132,15 @@ class Card
                     edition_name = :edition_name,
                     rarity = :rarity';
 
-        // Em edição, imagem tem três estados: manter (sem campo), substituir
-        // (image_update + novos bytes) ou remover (remove_image=true).
-        $imageUpdate = !empty($data['image_update']);
-        if ($imageUpdate) {
+        // Uma imagem nova substitui a atual; remove_image limpa as colunas.
+        // Sem nenhum dos dois, a imagem existente é preservada.
+        $hasNewImage = !empty($data['image_data']);
+        $removeImage = !empty($data['remove_image']);
+        if ($hasNewImage || $removeImage) {
             $sql .= ', image_mime = :image_mime, image_data = :image_data';
         }
 
-        $sql .= ', updated_at = NOW(6) WHERE id = :id';
+        $sql .= ', updated_at = NOW() WHERE id = :id';
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':name_en', $data['name_en']);
@@ -142,26 +150,19 @@ class Card
         $stmt->bindValue(':edition_name', $data['edition_name']);
         $stmt->bindValue(':rarity', $data['rarity']);
 
-        if ($imageUpdate) {
-            $mime = !empty($data['remove_image']) ? null : ($data['image_mime'] ?? null);
-            $binary = !empty($data['remove_image']) ? null : ($data['image_data'] ?? null);
-            $stmt->bindValue(':image_mime', $mime);
-            $this->bindImage($stmt, ':image_data', $binary);
+        if ($hasNewImage || $removeImage) {
+            $stmt->bindValue(':image_mime', $removeImage ? null : ($data['image_mime'] ?? null));
+            $this->bindImage($stmt, ':image_data', $removeImage ? null : $data['image_data']);
         }
 
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
-
-        // updated_at muda a cada UPDATE, então rowCount() continua distinguindo
-        // um registro existente de um id inexistente mesmo quando os dados não mudaram.
-        return $stmt->rowCount() > 0;
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id): void
     {
         $stmt = $this->db->prepare('DELETE FROM cards WHERE id = :id');
         $stmt->execute(['id' => $id]);
-        return $stmt->rowCount() > 0;
     }
 
     private function bindImage(PDOStatement $stmt, string $param, ?string $binary): void

@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS cards (
     rarity       ENUM('common', 'uncommon', 'rare', 'super_rare', 'ultra_rare', 'secret_rare') NOT NULL,
     image_mime   VARCHAR(50) NULL,
     image_data   LONGBLOB NULL,
-    created_at   DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at   DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_card_game (card_game),
     INDEX idx_rarity (rarity)
 ) ENGINE=InnoDB;

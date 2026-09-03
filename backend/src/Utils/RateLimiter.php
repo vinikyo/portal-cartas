@@ -3,42 +3,23 @@
 /**
  * RateLimiter
  *
- * Limite simples de 10 requisições/segundo por cliente. Guarda, por IP, os
+ * Limite simples de 10 requisições/segundo por IP. Guarda, por IP, os
  * timestamps das requisições recentes num arquivo em disco (com flock pra
  * ficar seguro mesmo com requisições concorrentes) — sem depender de
  * Redis/Memcached/extensão nenhuma, só PHP puro, o que já é suficiente pro
  * volume de tráfego desse desafio.
  *
- * Importante: em produção atrás de proxy, X-Forwarded-For só é aceito quando
- * TRUST_PROXY=1 estiver configurado para um proxy confiável.
+ * Importante: isso limita por IP, não globalmente — um usuário abusando não
+ * derruba o acesso dos outros.
  */
 class RateLimiter
 {
     private const MAX_REQUESTS = 10;
     private const WINDOW_SECONDS = 1;
 
-    private static function clientIp(): string
-    {
-        $remote = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-
-        // Só confia em X-Forwarded-For quando o deploy explicitamente informa
-        // que há um proxy confiável na frente da aplicação.
-        if (defined('TRUST_PROXY') && TRUST_PROXY) {
-            $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-            if ($forwarded !== '') {
-                $candidate = trim(explode(',', $forwarded)[0]);
-                if (filter_var($candidate, FILTER_VALIDATE_IP)) {
-                    return $candidate;
-                }
-            }
-        }
-
-        return $remote;
-    }
-
     public static function check(): void
     {
-        $ip = self::clientIp();
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $safeKey = preg_replace('/[^a-zA-Z0-9_.:]/', '_', $ip);
         $file = sys_get_temp_dir() . "/portal_cartas_rl_{$safeKey}.json";
 

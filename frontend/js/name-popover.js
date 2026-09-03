@@ -1,5 +1,12 @@
 // name-popover.js
-// Mostra nomes truncados no hover/foco sem interceptar a navegação do link.
+// Nomes de carta muito longos são truncados via CSS (ellipsis) pra nunca
+// esticar a tabela/layout — ver .truncate-name no style.css. Este módulo dá
+// um jeito de ver o nome completo sem sair da página: clicar num nome
+// truncado abre um popover leve (não é um <dialog>/modal de verdade de
+// propósito, é só um balão de texto) perto do elemento, com o nome inteiro.
+//
+// Funciona em qualquer elemento com a classe .truncate-name — não precisa
+// registrar nada por página, só incluir este script depois de utils.js.
 
 (function () {
   let activePopover = null;
@@ -8,9 +15,6 @@
   function closePopover() {
     if (!activePopover) return;
     activePopover.remove();
-    if (activeTrigger) {
-      activeTrigger.closest('.cards-table__link')?.removeAttribute('aria-describedby');
-    }
     activePopover = null;
     activeTrigger = null;
     document.removeEventListener('click', onOutsideClick, true);
@@ -20,7 +24,7 @@
   }
 
   function onOutsideClick(event) {
-    if (activePopover && !activePopover.contains(event.target) && !activeTrigger?.contains(event.target)) {
+    if (activePopover && !activePopover.contains(event.target) && event.target !== activeTrigger) {
       closePopover();
     }
   }
@@ -32,71 +36,52 @@
   function positionPopover(popover, trigger) {
     const rect = trigger.getBoundingClientRect();
     const popRect = popover.getBoundingClientRect();
-    const gap = 6;
-    const horizontalPadding = 8;
+    const viewportWidth = document.documentElement.clientWidth;
 
-    let left = Math.min(
-      Math.max(horizontalPadding, rect.left),
-      window.innerWidth - popRect.width - horizontalPadding
-    );
+    let left = rect.left + window.scrollX;
+    const maxLeft = window.scrollX + viewportWidth - popRect.width - 8;
+    if (left > maxLeft) left = Math.max(8, maxLeft);
 
-    let top = rect.bottom + gap;
-    if (top + popRect.height > window.innerHeight - horizontalPadding) {
-      top = rect.top - popRect.height - gap;
-    }
-    top = Math.max(horizontalPadding, top);
-
+    let top = rect.bottom + window.scrollY + 6;
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
   }
 
   function showPopover(trigger) {
-    if (!trigger || trigger.scrollWidth <= trigger.clientWidth + 1) return;
     closePopover();
 
     const popover = document.createElement('div');
     popover.className = 'name-popover';
     popover.setAttribute('role', 'tooltip');
-    popover.id = `name-popover-${Date.now()}`;
     popover.textContent = trigger.textContent;
     document.body.appendChild(popover);
 
     positionPopover(popover, trigger);
+
     activePopover = popover;
     activeTrigger = trigger;
 
-    if (trigger.closest('.cards-table__link')) {
-      trigger.closest('.cards-table__link').setAttribute('aria-describedby', popover.id);
-    }
-
-    document.addEventListener('click', onOutsideClick, true);
-    document.addEventListener('keydown', onKeyDown, true);
-    window.addEventListener('resize', closePopover);
-    window.addEventListener('scroll', closePopover, true);
+    // registra os listeners de fechar só depois deste clique terminar de
+    // borbulhar, senão o próprio clique que abriu já fecharia de novo
+    setTimeout(() => {
+      document.addEventListener('click', onOutsideClick, true);
+      document.addEventListener('keydown', onKeyDown, true);
+      window.addEventListener('resize', closePopover);
+      window.addEventListener('scroll', closePopover, true);
+    }, 0);
   }
 
-  function triggerFromEvent(target) {
-    const element = target.closest('.truncate-name');
-    if (element) return element;
+  document.addEventListener('click', (event) => {
+    const el = event.target.closest('.truncate-name');
+    if (!el) return;
 
-    const link = target.closest('.cards-table__link');
-    return link?.querySelector('.truncate-name') || null;
-  }
+    // só intercepta o clique se o nome estiver de fato cortado — nomes
+    // curtos continuam funcionando normalmente (ex: navegar pelo link)
+    const isTruncated = el.scrollWidth > el.clientWidth + 1;
+    if (!isTruncated) return;
 
-  document.addEventListener('pointerover', (event) => {
-    const trigger = triggerFromEvent(event.target);
-    if (trigger) showPopover(trigger);
-  });
-
-  document.addEventListener('focusin', (event) => {
-    const trigger = triggerFromEvent(event.target);
-    if (trigger) showPopover(trigger);
-  });
-
-  document.addEventListener('focusout', (event) => {
-    const trigger = triggerFromEvent(event.target);
-    if (trigger && !trigger.contains(event.relatedTarget) && !event.relatedTarget?.closest?.('.name-popover')) {
-      closePopover();
-    }
+    event.preventDefault();
+    event.stopPropagation();
+    showPopover(el);
   });
 })();

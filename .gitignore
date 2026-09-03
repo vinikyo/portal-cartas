@@ -12,7 +12,3 @@ vendor/
 
 # Logs
 *.log
-
-# Imagens enviadas em runtime nunca devem ser versionadas
-backend/public/uploads/*
-!backend/public/uploads/.gitkeep

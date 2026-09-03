@@ -4,6 +4,7 @@
    fundo cinza-claro, superfícies brancas em "cards" com sombra suave. */
 
 :root {
+  color-scheme: light;
   --color-primary: #e3242b;        /* vermelho de marca (topbar, botões primários) */
   --color-primary-dark: #b81c22;
   --color-primary-soft: #fdeceb;
@@ -23,10 +24,44 @@
   --color-text-muted: #6b7280;
   --color-border: #e2e5ea;
 
+  --color-input: #ffffff;
+  --color-disabled: #f3f4f6;
+  --color-row-hover: #fafbfc;
+  --color-secondary-border: #cfe1f8;
+  --color-secondary-hover: #d7e8fc;
+  --color-danger-soft: #fee2e2;
+  --color-danger-soft-hover: #fecaca;
+  --login-gradient-end: rgba(238, 240, 243, 0);
+
   --radius: 8px;
   --shadow: 0 1px 3px rgba(17, 24, 39, 0.08), 0 1px 2px rgba(17, 24, 39, 0.05);
   --shadow-md: 0 4px 14px rgba(17, 24, 39, 0.1);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary-soft: #4a1d22;
+  --color-secondary: #60a5fa;
+  --color-secondary-dark: #bfdbfe;
+  --color-secondary-soft: #172f52;
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+  --color-bg: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f3f4f6;
+  --color-text-muted: #aab4c3;
+  --color-border: #3b4658;
+  --color-input: #172033;
+  --color-disabled: #293548;
+  --color-row-hover: #263244;
+  --color-secondary-border: #315a8f;
+  --color-secondary-hover: #23436d;
+  --color-danger-soft: #4a1d22;
+  --color-danger-soft-hover: #64242a;
+  --login-gradient-end: rgba(17, 24, 39, 0);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.38);
 }
 
 * { box-sizing: border-box; }
@@ -100,19 +135,56 @@ a { color: var(--color-secondary); }
 
 .btn--ghost {
   background: var(--color-secondary-soft);
-  border-color: #cfe1f8;
+  border-color: var(--color-secondary-border);
   color: var(--color-secondary-dark);
 }
-.btn--ghost:hover { background: #d7e8fc; }
+.btn--ghost:hover { background: var(--color-secondary-hover); }
 
 .btn--danger {
-  background: #fee2e2;
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
-.btn--danger:hover { background: #fecaca; }
+.btn--danger:hover { background: var(--color-danger-soft-hover); }
 
 .btn--small { padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 999px; }
 .btn--full { width: 100%; }
+
+.btn--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+}
+
+.btn--small.btn--icon {
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+}
+
+.btn--with-icon { gap: 0.45rem; }
+
+.btn__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* O ícone mostra a ação disponível: lua no claro e sol no escuro. */
+.theme-toggle__sun { display: none; }
+html[data-theme="dark"] .theme-toggle__sun { display: block; }
+html[data-theme="dark"] .theme-toggle__moon { display: none; }
+
+.theme-toggle--floating {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
 
 .btn:disabled, .btn.is-loading {
   opacity: 0.7;
@@ -140,7 +212,7 @@ a { color: var(--color-secondary); }
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 1rem;
-  background: #fff;
+  background: var(--color-input);
   color: var(--color-text);
 }
 
@@ -152,7 +224,7 @@ a { color: var(--color-secondary); }
 }
 
 .form-group select:disabled {
-  background: #f3f4f6;
+  background: var(--color-disabled);
   color: var(--color-text-muted);
   cursor: not-allowed;
 }
@@ -192,7 +264,7 @@ a { color: var(--color-secondary); }
   justify-content: center;
   padding: 1.5rem;
   background:
-    linear-gradient(180deg, rgba(227, 36, 43, 0.06), rgba(238, 240, 243, 0) 220px),
+    linear-gradient(180deg, rgba(227, 36, 43, 0.06), var(--login-gradient-end) 220px),
     var(--color-bg);
 }
 
@@ -278,7 +350,7 @@ a { color: var(--color-secondary); }
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: #fff;
+  background: var(--color-input);
   color: var(--color-text-muted);
   font-size: 0.6rem;
   line-height: 1.15;
@@ -296,6 +368,17 @@ a { color: var(--color-secondary); }
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.image-upload__preview-box { flex: 0 0 auto; }
+
+.image-upload input[type="file"] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .image-upload__preview-box .card-thumb,
@@ -310,6 +393,39 @@ a { color: var(--color-secondary); }
   border-radius: 4px;
   border: 1px solid var(--color-border);
   display: block;
+}
+
+.image-remove-button {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+}
+
+.image-remove-button.is-active {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.image-remove-button.is-active:hover { background: #b91c1c; }
+
+@media (max-width: 639px) {
+  .modal__panel,
+  .modal__panel .form,
+  .modal__panel .form-group {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .image-upload {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .image-upload__preview-box { align-self: flex-start; }
+
+  .image-upload input[type="file"] {
+    display: block;
+    overflow: hidden;
+  }
 }
 
 .table-wrapper {
@@ -360,9 +476,9 @@ a { color: var(--color-secondary); }
   .col-name-en    { width: 17%; }
   .col-name-pt    { width: 17%; }
   .col-game       { width: 13%; }
-  .col-edition    { width: 13%; }
-  .col-rarity     { width: 12%; }
-  .col-actions    { width: 21%; }
+  .col-edition    { width: 14%; }
+  .col-rarity     { width: 14%; }
+  .col-actions    { width: 18%; }
 
   .cards-table th, .cards-table td {
     padding: 0.75rem 1rem;
@@ -377,8 +493,18 @@ a { color: var(--color-secondary); }
     color: var(--color-secondary-dark);
     background: var(--color-secondary-soft);
   }
-  .cards-table tbody tr:hover { background: #fafbfc; }
-  .cards-table__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .cards-table tbody tr:hover { background: var(--color-row-hover); }
+  .cards-table__actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+}
+
+@media (min-width: 1024px) {
+  .col-image      { width: 7%; }
+  .col-name-en    { width: 19%; }
+  .col-name-pt    { width: 19%; }
+  .col-game       { width: 14%; }
+  .col-edition    { width: 14%; }
+  .col-rarity     { width: 13%; }
+  .col-actions    { width: 14%; }
 }
 
 /* ---------- Nome truncado + popover ----------
@@ -414,7 +540,7 @@ a { color: var(--color-secondary); }
 }
 
 .name-popover {
-  position: fixed;
+  position: absolute;
   z-index: 60;
   max-width: 280px;
   padding: 0.5rem 0.75rem;
@@ -457,6 +583,15 @@ a { color: var(--color-secondary); }
 .badge--rarity-super_rare { background: #f1e7fb; color: #6b21a8; }
 .badge--rarity-ultra_rare { background: #fff0da; color: #b45309; }
 .badge--rarity-secret_rare { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+
+html[data-theme="dark"] .badge--game-magic,
+html[data-theme="dark"] .badge--rarity-super_rare { background: #3c2850; color: #e9c8ff; }
+html[data-theme="dark"] .badge--game-pokemon,
+html[data-theme="dark"] .badge--rarity-secret_rare { background: #4a1d22; color: #ffb4b8; }
+html[data-theme="dark"] .badge--game-yugioh { background: #47391c; color: #ffd98a; }
+html[data-theme="dark"] .badge--rarity-common { background: #303b4b; color: #cbd5e1; }
+html[data-theme="dark"] .badge--rarity-uncommon { background: #153c2b; color: #86efac; }
+html[data-theme="dark"] .badge--rarity-ultra_rare { background: #4b3217; color: #fdba74; }
 
 /* ---------- Modal ---------- */
 
@@ -667,15 +802,3 @@ a { color: var(--color-secondary); }
 .detail-card__fact dd { margin: 0; font-weight: 600; text-align: right; }
 
 .detail-card__actions { display: flex; }
-
-
-.image-upload__remove {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-.image-upload__remove label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
