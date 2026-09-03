@@ -370,6 +370,61 @@ a { color: var(--color-secondary); }
   .cards-table__actions { display: flex; gap: 0.5rem; }
 }
 
+/* ---------- Nome truncado + popover ----------
+   Nomes de carta podem ser bem longos (algumas cartas de Yu-Gi-Oh! passam de
+   50 caracteres). Em vez de deixar a coluna/linha esticar o layout, o nome é
+   cortado com reticências e o texto completo fica disponível ao clicar (ver
+   name-popover.js) — sem precisar sair da tela nem quebrar o alinhamento da
+   tabela. */
+.truncate-name {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.cards-table__link .truncate-name { cursor: pointer; }
+
+@media (min-width: 768px) {
+  .cards-table td[data-label="Nome (EN)"] .truncate-name,
+  .cards-table td[data-label="Nome (PT)"] .truncate-name {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 767px) {
+  .cards-table td[data-label="Nome (EN)"],
+  .cards-table td[data-label="Nome (PT)"] {
+    min-width: 0;
+  }
+  .cards-table td[data-label="Nome (EN)"] .truncate-name,
+  .cards-table td[data-label="Nome (PT)"] .truncate-name {
+    max-width: 60%;
+  }
+}
+
+.name-popover {
+  position: absolute;
+  z-index: 60;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-text);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  word-break: break-word;
+  animation: name-popover-in 0.12s ease-out;
+}
+
+@keyframes name-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- Badges (Card Game / Raridade) ---------- */
 
 .badge {
@@ -577,11 +632,12 @@ a { color: var(--color-secondary); }
   margin-bottom: 0.75rem;
 }
 
-.detail-card__title { margin: 0; font-size: 1.75rem; }
+.detail-card__title { margin: 0; font-size: 1.75rem; overflow-wrap: break-word; }
 .detail-card__subtitle {
   margin: 0.15rem 0 1.25rem;
   color: var(--color-text-muted);
   font-size: 1.1rem;
+  overflow-wrap: break-word;
 }
 
 .detail-card__facts {

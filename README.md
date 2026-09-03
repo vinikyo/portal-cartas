@@ -29,7 +29,7 @@ Nada aqui substitui um item obrigatório — são funcionalidades extras em cima
 - **Filtro por texto/Card Game/Raridade** e **paginação**, ambos resolvidos no back-end
 - **Página de detalhes** de cada carta (`detail.html?id=`)
 - Imagem guardada como blob no MySQL (decisão técnica pra sobreviver a deploys em serviços com disco efêmero, como Railway)
-- **Rate limit de 10 req/s por IP** e **timeout de 15s no front-end**, pra API não ficar vulnerável a rajada de requisições nem o front travar esperando pra sempre (ver [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http))
+- **Rate limit de 10 req/s por IP** e **timeout de 5s no front-end**, pra API não ficar vulnerável a rajada de requisições nem o front travar esperando pra sempre (ver [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http))
 - **Tratamento de erro centralizado**: qualquer exceção não prevista (erro de SQL, banco fora do ar, etc.) é traduzida pra um status HTTP + mensagem apropriados — o cliente nunca recebe detalhe cru de banco de dados
 
 ## Aplicação no ar
@@ -162,6 +162,8 @@ A API segue arquitetura em camadas: **Controller** (recebe a request) → **Serv
 
 5. **Imagem salva no banco, não em arquivo.** A imagem da carta é guardada como blob dentro do MySQL (colunas `image_mime`/`image_data`), não como arquivo no disco do container. Decisão técnica deliberada: o disco de serviços como o Railway é efêmero (o que foi gravado em arquivo some no próximo deploy), então guardar em arquivo faria as imagens desaparecerem sozinhas depois de um tempo. Guardando no banco, a imagem "nasce" junto com o resto do dado da carta e sobrevive a qualquer deploy, backup ou migração.
 
+6. **Nome longo trunca com "…" em vez de esticar a tabela, com popover pra ver o texto completo.** Algumas cartas (principalmente Yu-Gi-Oh!) têm nomes com 40-50+ caracteres, e deixar isso quebrar o alinhamento da tabela numa tela cheia de dados tabulares prejudica a leitura de todo o resto. A coluna de nome corta o texto com reticências (tanto na visão desktop quanto na de "cards" do mobile) e, ao clicar num nome cortado, um pequeno popover mostra o texto completo sem navegar pra outra tela — só intercepta o clique quando o nome de fato está cortado, então nomes curtos continuam funcionando como link normal pra página de detalhes.
+
 ## Paginação e filtro (resolvidos no back-end)
 
 `GET /api/cards` aceita `page`, `per_page` (padrão 12, máx. 50), `search`, `game` e `rarity` como query string, e devolve `{ items, page, per_page, total, total_pages }`. O front manda esses parâmetros a cada troca de filtro ou de página — a busca por texto compara nome em inglês, português e edição (ex: buscar "pikachu" mostra só os Pikachus); os filtros de Card Game e Raridade usam os mesmos campos do cadastro. Abaixo da tabela há os controles de "Anterior/Próxima" com o total de páginas.
@@ -216,7 +218,7 @@ Toda resposta de erro segue o mesmo formato (`{ success: false, message, errors?
 
 **Rate limit (`RateLimiter.php`).** Limite de 10 requisições/segundo por IP, numa janela deslizante guardada em arquivo (com `flock()`, sem depender de Redis/Memcached/extensão nenhuma). Passou do limite, responde `429` com header `Retry-After: 1`. É por IP, então um cliente abusando não derruba o acesso dos outros.
 
-**Timeout no front-end (`api.js`).** Todo `fetch` usa `AbortController` com limite de 15s — sem isso, um back-end travado ou fora do ar deixaria a tela carregando pra sempre, já que o navegador não tem timeout curto o suficiente por padrão. Estourou o tempo, a chamada é cancelada e o usuário vê uma mensagem de erro em vez de uma tela travada; falha de rede (sem internet, CORS bloqueado, servidor fora do ar) tem uma mensagem própria também.
+**Timeout no front-end (`api.js`).** Todo `fetch` usa `AbortController` com limite de 5s — sem isso, um back-end travado ou fora do ar deixaria a tela carregando pra sempre, já que o navegador não tem timeout curto o suficiente por padrão. Estourou o tempo, a chamada é cancelada e o usuário vê uma mensagem de erro em vez de uma tela travada; falha de rede (sem internet, CORS bloqueado, servidor fora do ar) tem uma mensagem própria também.
 
 ## Melhorias futuras (fora do escopo desta entrega)
 

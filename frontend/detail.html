@@ -77,14 +77,20 @@
 
         <div class="form-group">
           <label for="name_en">Nome em inglês *</label>
-          <input type="text" id="name_en" name="name_en" required />
-          <span class="field-error" data-error-for="name_en"></span>
+          <input type="text" id="name_en" name="name_en" required maxlength="150" />
+          <div class="form-group__footer">
+            <span class="field-error" data-error-for="name_en"></span>
+            <span class="field-hint" data-counter-for="name_en">0/150</span>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="name_pt">Nome em português</label>
-          <input type="text" id="name_pt" name="name_pt" />
-          <span class="field-error" data-error-for="name_pt"></span>
+          <input type="text" id="name_pt" name="name_pt" maxlength="150" />
+          <div class="form-group__footer">
+            <span class="field-error" data-error-for="name_pt"></span>
+            <span class="field-hint" data-counter-for="name_pt">0/150</span>
+          </div>
         </div>
 
         <div class="form-group">
@@ -149,6 +155,7 @@
 
   <script src="js/consts.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/name-popover.js"></script>
   <script src="js/api.js"></script>
   <script src="js/card-modal.js"></script>
   <script src="js/detail.js"></script>

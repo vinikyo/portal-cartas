@@ -4,7 +4,7 @@
 // do app chama Api.get/post/etc — nunca fetch() direto.
 
 const TOKEN_STORAGE_KEY = 'portal_cartas_token';
-const REQUEST_TIMEOUT_MS = 15000; // 15s — tempo o suficiente pro Railway "acordar" a dyno, sem travar o front pra sempre
+const REQUEST_TIMEOUT_MS = 5000; // 5s antes de desistir e mostrar erro de timeout pro usuário
 
 const Api = {
   getToken() {

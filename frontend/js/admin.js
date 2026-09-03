@@ -149,9 +149,9 @@ function renderTable() {
     tr.innerHTML = `
       <td data-label="Imagem">${cardImageHtml(card)}</td>
       <td data-label="Nome (EN)">
-        <a class="cards-table__link" href="detail.html?id=${card.id}">${escapeHtml(card.name_en)}</a>
+        <a class="cards-table__link" href="detail.html?id=${card.id}"><span class="truncate-name">${escapeHtml(card.name_en)}</span></a>
       </td>
-      <td data-label="Nome (PT)">${escapeHtml(card.name_pt || '—')}</td>
+      <td data-label="Nome (PT)"><span class="truncate-name">${escapeHtml(card.name_pt || '—')}</span></td>
       <td data-label="Card Game">${gameBadgeHtml(card)}</td>
       <td data-label="Edição">${escapeHtml(card.edition_name)}</td>
       <td data-label="Raridade">${rarityBadgeHtml(card)}</td>
