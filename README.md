@@ -21,7 +21,7 @@ Portal para gestão de cartas (Magic, Pokémon e Yu-Gi-Oh!), com autenticação 
 | MySQL com schema + seed | `backend/database/schema.sql` + `seed.sql` |
 | README com passo a passo, credenciais e 2 decisões de UX | Este arquivo (credenciais [abaixo](#credenciais-de-teste), decisões [abaixo](#decisões-de-ux--produto)) |
 
-### ➕ Adicionado além do pedido (a meu pedido, numa segunda rodada)
+### ➕ Funcionalidades extras (não fazem parte do escopo obrigatório)
 
 Nada aqui substitui um item obrigatório — são funcionalidades extras em cima do escopo original:
 
@@ -39,8 +39,6 @@ Deploy de teste rodando no Railway (MySQL + back-end PHP + front-end estático, 
 - **Login de teste:** ver seção [Credenciais de teste](#credenciais-de-teste) abaixo.
 
 > Ambiente de teste temporário para avaliação — pode ser derrubado após o período do desafio.
-
-> **Nota:** esta versão mudou como a imagem da carta é guardada (agora fica no MySQL, não em arquivo — ver seção [Upload de imagem](#upload-de-imagem)). Depois de fazer o deploy dessa versão, rode `backend/database/migrate_v2_images.sql` contra o MySQL do Railway antes de usar o painel, senão o `INSERT`/`UPDATE` de carta com imagem vai falhar por falta das colunas novas.
 
 ## Stack
 
@@ -168,32 +166,11 @@ A API segue arquitetura em camadas: **Controller** (recebe a request) → **Serv
 
 ## Página de detalhes
 
-Cada carta tem uma página própria em `detail.html?id={id}` (link "Ver" na listagem, ou clicando no nome da carta), mostrando a imagem em tamanho maior e os mesmos dados do cadastro (nome EN/PT, Card Game, Edição, Raridade). De lá dá pra ir direto pra edição, que abre `admin.html?edit={id}` e já abre o modal preenchido.
+Cada carta tem uma página própria em `detail.html?id={id}` (link "Ver" na listagem, ou clicando no nome da carta), mostrando a imagem em tamanho maior e os mesmos dados do cadastro (nome EN/PT, Card Game, Edição, Raridade). O botão "Editar esta carta" abre o mesmo modal de edição do gerenciador direto nessa página, sem navegação.
 
 ## Upload de imagem
 
 O campo de imagem do formulário aceita um arquivo real (JPG, PNG ou WEBP, até 5MB), lido no navegador (`FileReader`) e enviado como base64 dentro do próprio JSON de criação/edição da carta (`image_base64`) — não existe mais um endpoint de upload separado. O back-end decodifica, valida tipo/tamanho e grava o binário direto no banco. Ao editar uma carta sem trocar o arquivo, a imagem antiga é mantida (o campo só é sobrescrito quando um arquivo novo é selecionado). A imagem é servida por `GET /api/cards/{id}/image`, uma rota pública de propósito — uma tag `<img>` não consegue mandar o header `Authorization`, então servir o binário sem exigir login é o jeito correto de fazer isso com JWT (o restante da API continua protegido).
-
-### Levando as imagens que você já tinha cadastrado (upload em arquivo) pro banco
-
-Se você já tinha cartas com imagem cadastrada na versão anterior (arquivo em `backend/public/uploads/`), rode isto **antes** de atualizar pra essa versão em produção, pra não perder as imagens:
-
-```bash
-# 1. adiciona as colunas novas no banco que já existe
-docker-compose exec db mysql -u root -proot portal_cartas < backend/database/migrate_v2_images.sql
-
-# 2. copia o conteúdo dos arquivos de backend/public/uploads pra dentro do banco
-docker-compose exec app php database/migrate_images_to_db.php
-```
-
-Se o seu ambiente de produção (ex: Railway) usa um MySQL diferente do local, exporte o banco local depois da migração e importe lá:
-
-```bash
-docker-compose exec db mysqldump -u root -proot portal_cartas > backup.sql
-# depois, importe backup.sql no MySQL do Railway (via painel ou mysql client apontando pro host do Railway)
-```
-
-Quem estiver clonando o projeto do zero não precisa de nada disso — o `schema.sql` já vem com a estrutura nova.
 
 ## Endpoints da API
 
