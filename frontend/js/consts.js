@@ -1,7 +1,17 @@
 // consts.js
 // Constantes usadas em mais de um arquivo: URL da API e mensagens padrão.
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// A URL da API muda dependendo de onde o front está rodando: em localhost
+// (dev local via Docker/php -S/Live Server) aponta pro back-end local; em
+// qualquer outro host (ex: o front publicado no Railway) aponta pro back-end
+// publicado. Isso evita o front tentar falar com "localhost:8000" quando
+// está rodando no navegador de outra pessoa, que não tem nada nessa porta.
+const API_BASE_URL = (() => {
+  const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  return isLocalhost
+    ? 'http://localhost:8000/api'
+    : 'https://backend-production-ec5a.up.railway.app/api';
+})();
 
 const MESSAGES = {
   LOGIN_ERROR: 'Usuário ou senha inválidos.',
