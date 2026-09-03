@@ -348,11 +348,22 @@ a { color: var(--color-secondary); }
     font-weight: 600;
     color: var(--color-text-muted);
     text-align: left;
+    flex-shrink: 0;
   }
   .cards-table__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 }
 
 @media (min-width: 768px) {
+  .cards-table { table-layout: fixed; }
+
+  .col-image      { width: 7%; }
+  .col-name-en    { width: 17%; }
+  .col-name-pt    { width: 17%; }
+  .col-game       { width: 13%; }
+  .col-edition    { width: 13%; }
+  .col-rarity     { width: 12%; }
+  .col-actions    { width: 21%; }
+
   .cards-table th, .cards-table td {
     padding: 0.75rem 1rem;
     text-align: left;
@@ -367,7 +378,7 @@ a { color: var(--color-secondary); }
     background: var(--color-secondary-soft);
   }
   .cards-table tbody tr:hover { background: #fafbfc; }
-  .cards-table__actions { display: flex; gap: 0.5rem; }
+  .cards-table__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 }
 
 /* ---------- Nome truncado + popover ----------
@@ -387,26 +398,23 @@ a { color: var(--color-secondary); }
 
 .cards-table__link .truncate-name { cursor: pointer; }
 
-@media (min-width: 768px) {
-  .cards-table td[data-label="Nome (EN)"] .truncate-name,
-  .cards-table td[data-label="Nome (PT)"] .truncate-name {
-    max-width: 220px;
-  }
-}
-
 @media (max-width: 767px) {
   .cards-table td[data-label="Nome (EN)"],
   .cards-table td[data-label="Nome (PT)"] {
     min-width: 0;
   }
-  .cards-table td[data-label="Nome (EN)"] .truncate-name,
-  .cards-table td[data-label="Nome (PT)"] .truncate-name {
-    max-width: 60%;
+  .cards-table td[data-label="Nome (EN)"] .cards-table__link,
+  .cards-table td[data-label="Nome (PT)"] > .truncate-name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .cards-table td[data-label="Nome (EN)"] .truncate-name {
+    max-width: 100%;
   }
 }
 
 .name-popover {
-  position: absolute;
+  position: fixed;
   z-index: 60;
   max-width: 280px;
   padding: 0.5rem 0.75rem;
@@ -430,11 +438,13 @@ a { color: var(--color-secondary); }
 .badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
 }
 
 .badge--game-magic { background: #f1e7fb; color: #6b21a8; }
@@ -657,3 +667,15 @@ a { color: var(--color-secondary); }
 .detail-card__fact dd { margin: 0; font-weight: 600; text-align: right; }
 
 .detail-card__actions { display: flex; }
+
+
+.image-upload__remove {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.image-upload__remove label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}

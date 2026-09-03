@@ -8,19 +8,7 @@
  * de um Controller.
  */
 
-require __DIR__ . '/../src/Config/Constants.php';
-require __DIR__ . '/../src/Config/Database.php';
 require __DIR__ . '/../src/Utils/Response.php';
-require __DIR__ . '/../src/Utils/Request.php';
-require __DIR__ . '/../src/Utils/RateLimiter.php';
-require __DIR__ . '/../src/Utils/Validator.php';
-require __DIR__ . '/../src/Utils/Jwt.php';
-require __DIR__ . '/../src/Models/User.php';
-require __DIR__ . '/../src/Models/Card.php';
-require __DIR__ . '/../src/Services/AuthService.php';
-require __DIR__ . '/../src/Services/CardService.php';
-require __DIR__ . '/../src/Controllers/AuthController.php';
-require __DIR__ . '/../src/Controllers/CardController.php';
 
 // CORS liberado para desenvolvimento local (front e back em portas/origens diferentes).
 // Com JWT não dependemos mais de cookie entre origens, então Allow-Origin: *
@@ -41,6 +29,18 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = '/' . trim(preg_replace('#^/api#', '', $path), '/');
 
 try {
+    require __DIR__ . '/../src/Config/Constants.php';
+    require __DIR__ . '/../src/Config/Database.php';
+    require __DIR__ . '/../src/Utils/Request.php';
+    require __DIR__ . '/../src/Utils/Validator.php';
+    require __DIR__ . '/../src/Utils/Jwt.php';
+    require __DIR__ . '/../src/Models/User.php';
+    require __DIR__ . '/../src/Models/Card.php';
+    require __DIR__ . '/../src/Services/AuthService.php';
+    require __DIR__ . '/../src/Services/CardService.php';
+    require __DIR__ . '/../src/Controllers/AuthController.php';
+    require __DIR__ . '/../src/Controllers/CardController.php';
+
     // Instanciar os controllers aqui dentro (e não antes do try) importa:
     // o construtor de CardController já abre a conexão com o banco (ver
     // Card::__construct), então se o MySQL estiver fora do ar isso lança
@@ -48,11 +48,6 @@ try {
     // nunca vaza mensagem crua de banco) se estiver dentro do try.
     $authController = new AuthController();
     $cardController = new CardController();
-
-    // 10 requisições/s por IP. Roda antes do roteamento: qualquer rota
-    // (existente ou não) conta pro limite, senão dava pra descobrir rotas
-    // válidas só testando até parar de tomar 429.
-    RateLimiter::check();
 
     // Tabela de rotas: [método, regex do path, handler]. Guardamos TODOS os
     // métodos que casam com o path (independente do método bater) pra poder

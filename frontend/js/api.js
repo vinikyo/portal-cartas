@@ -19,6 +19,10 @@ const Api = {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
   },
 
+  getTokenPayload() {
+    return decodeJwtPayload(this.getToken());
+  },
+
   async request(path, options = {}) {
     const token = this.getToken();
 
@@ -66,8 +70,13 @@ const Api = {
     if (!response.ok) {
       if (response.status === 401) {
         this.clearToken();
+        const currentPage = window.location.pathname.split('/').pop();
+        if (currentPage !== 'login.html') {
+          const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.href = `login.html?next=${encodeURIComponent(next)}`;
+        }
       }
-      const fallbackMessage = response.status === 429 ? MESSAGES.RATE_LIMITED : MESSAGES.GENERIC_ERROR;
+      const fallbackMessage = MESSAGES.GENERIC_ERROR;
       const message = (body && body.message) || fallbackMessage;
       const error = new Error(message);
       error.status = response.status;

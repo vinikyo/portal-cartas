@@ -5,24 +5,23 @@
 // navegar de volta pra admin.html.
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await checkAuth();
-  CardModal.init({ onSaved: (card) => renderCard(card) });
+  if (!checkAuth()) return;
+  CardModal.init({ onSaved: (card) => { storeCard(card); renderCard(card); } });
   bindEvents();
   await loadCard();
 });
 
-async function checkAuth() {
-  if (!Api.getToken()) {
-    window.location.href = 'login.html';
-    return;
-  }
-  try {
-    const user = await Api.get('/me');
-    qs('#current-username').textContent = user.username;
-  } catch (error) {
+function checkAuth() {
+  const token = Api.getToken();
+  const payload = Api.getTokenPayload();
+  if (!token || !payload || (payload.exp && payload.exp <= Math.floor(Date.now() / 1000))) {
     Api.clearToken();
     window.location.href = 'login.html';
+    return false;
   }
+
+  qs('#current-username').textContent = payload.username || '';
+  return true;
 }
 
 let currentCard = null;
@@ -47,6 +46,7 @@ function getCardId() {
 async function loadCard() {
   const loading = qs('#loading-state');
   const errorState = qs('#error-state');
+  const detail = qs('#detail-card');
   const id = getCardId();
 
   if (!id) {
@@ -56,11 +56,22 @@ async function loadCard() {
     return;
   }
 
+  const cachedCard = getStoredCard(id);
+  if (cachedCard && Number(cachedCard.id) === id) {
+    renderCard(cachedCard);
+    loading.hidden = true;
+    errorState.hidden = true;
+    detail.hidden = false;
+    return;
+  }
+
   try {
     const card = await Api.get(`/cards/${id}`);
+    storeCard(card);
     renderCard(card);
     loading.hidden = true;
-    qs('#detail-card').hidden = false;
+    errorState.hidden = true;
+    detail.hidden = false;
   } catch (error) {
     loading.hidden = true;
     errorState.hidden = false;
@@ -87,8 +98,8 @@ function renderCard(card) {
   const gameLabel = GAME_LABELS[card.card_game] || card.card_game;
   const rarityLabel = RARITY_LABELS[card.rarity] || card.rarity;
 
-  qs('#detail-game-badge').innerHTML = `<span class="badge badge--game-${card.card_game}">${escapeHtml(gameLabel)}</span>`;
-  qs('#detail-rarity-badge').innerHTML = `<span class="badge badge--rarity-${card.rarity}">${escapeHtml(rarityLabel)}</span>`;
+  renderBadge(qs('#detail-game-badge'), 'badge--game-', card.card_game, gameLabel, GAME_LABELS);
+  renderBadge(qs('#detail-rarity-badge'), 'badge--rarity-', card.rarity, rarityLabel, RARITY_LABELS);
 
   qs('#detail-game').textContent = gameLabel;
   qs('#detail-edition').textContent = card.edition_name;
@@ -107,8 +118,10 @@ function renderCard(card) {
   }
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+function renderBadge(container, prefix, key, label, allowedMap) {
+  container.replaceChildren();
+  const badge = document.createElement('span');
+  badge.className = `badge ${prefix}${Object.prototype.hasOwnProperty.call(allowedMap, key) ? key : ''}`;
+  badge.textContent = label;
+  container.appendChild(badge);
 }

@@ -75,23 +75,29 @@ class CardService
 
     public function update(int $id, array $data): array
     {
-        $this->get($id); // garante que existe (já responde 404 se não existir)
         $this->validate($data);
         $image = $this->extractImage($data);
-        $this->cardModel->update($id, array_merge($data, $image));
+        $updated = $this->cardModel->update($id, array_merge($data, $image));
+        if (!$updated) {
+            Response::error('Carta não encontrada.', 404);
+        }
         return $this->get($id);
     }
 
     public function delete(int $id): void
     {
-        $this->get($id);
-        $this->cardModel->delete($id);
+        if (!$this->cardModel->delete($id)) {
+            Response::error('Carta não encontrada.', 404);
+        }
     }
 
     // troca `has_image` (interno) por `image_url` (o que o front consome)
     private function decorate(array $card): array
     {
-        $card['image_url'] = !empty($card['has_image']) ? "/cards/{$card['id']}/image" : null;
+        $version = isset($card['updated_at']) ? rawurlencode((string) $card['updated_at']) : '';
+        $card['image_url'] = !empty($card['has_image'])
+            ? "/cards/{$card['id']}/image?v={$version}"
+            : null;
         unset($card['has_image']);
         return $card;
     }
@@ -103,11 +109,27 @@ class CardService
      */
     private function extractImage(array $data): array
     {
-        if (empty($data['image_base64'])) {
-            return ['image_mime' => null, 'image_data' => null];
+        $hasImageField = array_key_exists('image_base64', $data) && trim((string) $data['image_base64']) !== '';
+        $removeImage = $data['remove_image'] ?? false;
+
+        if (!is_bool($removeImage)) {
+            Response::error('O campo remove_image deve ser booleano.', 422);
         }
 
-        if (!preg_match('/^data:(image\/[a-zA-Z]+);base64,(.+)$/', $data['image_base64'], $matches)) {
+        if ($hasImageField && $removeImage) {
+            Response::error('Escolha entre substituir ou remover a imagem.', 422);
+        }
+
+        if (!$hasImageField) {
+            return [
+                'image_update' => $removeImage,
+                'remove_image' => $removeImage,
+                'image_mime' => null,
+                'image_data' => null,
+            ];
+        }
+
+        if (!preg_match('/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/', (string) $data['image_base64'], $matches)) {
             Response::error('Formato de imagem inválido.', 422);
         }
 
@@ -126,7 +148,12 @@ class CardService
             Response::error('Imagem muito grande (máximo 5MB).', 413);
         }
 
-        return ['image_mime' => $mime, 'image_data' => $binary];
+        return [
+            'image_update' => true,
+            'remove_image' => false,
+            'image_mime' => $mime,
+            'image_data' => $binary,
+        ];
     }
 
     private function validate(array $data): void

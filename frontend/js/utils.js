@@ -69,3 +69,45 @@ function debounce(fn, delay = 300) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
+
+
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    return JSON.parse(atob(padded));
+  } catch (error) {
+    return null;
+  }
+}
+
+const CARD_CACHE_MAX_AGE_MS = 60 * 1000;
+
+function getStoredCard(cardId) {
+  try {
+    const raw = sessionStorage.getItem(`portal_cartas_card_${cardId}`);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.card || !parsed.cached_at) return null;
+    if (Date.now() - parsed.cached_at > CARD_CACHE_MAX_AGE_MS) return null;
+    return parsed.card;
+  } catch (error) {
+    return null;
+  }
+}
+
+function storeCard(card) {
+  if (!card || !card.id) return;
+  try {
+    sessionStorage.setItem(
+      `portal_cartas_card_${card.id}`,
+      JSON.stringify({ card, cached_at: Date.now() })
+    );
+  } catch (error) {
+    // Cache de navegação é apenas uma otimização; falhar aqui não pode impedir o fluxo.
+  }
+}

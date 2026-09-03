@@ -16,7 +16,7 @@ class AuthController
 
     public function login(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = Request::jsonBody();
 
         $username = trim($body['username'] ?? '');
         $password = (string) ($body['password'] ?? '');

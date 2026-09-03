@@ -13,7 +13,8 @@ services:
       DB_USER: root
       DB_PASS: root
       DB_PORT: 3306
-      JWT_SECRET: troque-esta-chave-em-producao
+      SIMULATE_LATENCY: "0"
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no ambiente ou em um arquivo .env}
 
   db:
     image: mysql:8

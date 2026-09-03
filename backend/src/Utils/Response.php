@@ -8,7 +8,7 @@
  */
 class Response
 {
-    public static function json($data, int $status = 200): void
+    public static function json($data, int $status = 200): never
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
@@ -16,12 +16,12 @@ class Response
         exit;
     }
 
-    public static function success($data = null, int $status = 200): void
+    public static function success($data = null, int $status = 200): never
     {
         self::json(['success' => true, 'data' => $data], $status);
     }
 
-    public static function error(string $message, int $status = 400, array $errors = []): void
+    public static function error(string $message, int $status = 400, array $errors = []): never
     {
         $payload = ['success' => false, 'message' => $message];
         if (!empty($errors)) {
@@ -37,7 +37,7 @@ class Response
      * (nome de coluna, tipo, etc.). A mensagem real vai só pro error_log,
      * pra quem tem acesso ao servidor conseguir debugar.
      */
-    public static function exception(Throwable $e): void
+    public static function exception(Throwable $e): never
     {
         error_log('[portal-cartas] ' . get_class($e) . ': ' . $e->getMessage());
 

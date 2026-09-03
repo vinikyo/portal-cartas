@@ -16,49 +16,25 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await checkAuth();
-  CardModal.init({ onSaved: () => loadCards() });
+  if (!checkAuth()) return;
+  CardModal.init({ onSaved: handleCardSaved });
   bindEvents();
   await loadCards();
-  openEditFromUrlIfAny();
 });
-
-// se veio de um link antigo com "?edit=123" (ex: favorito salvo), já abre
-// o modal de edição — hoje em dia a edição a partir do detalhe abre o modal
-// direto na própria página de detalhes, sem precisar desse parâmetro.
-function openEditFromUrlIfAny() {
-  const params = new URLSearchParams(window.location.search);
-  const editId = Number(params.get('edit'));
-  if (!editId) return;
-
-  const card = cardsCache.find((c) => c.id === editId);
-  if (card) {
-    CardModal.open(card);
-  } else {
-    // a carta pode estar em outra página da listagem — busca direto
-    Api.get(`/cards/${editId}`)
-      .then((c) => CardModal.open(c))
-      .catch(() => showToast('Carta não encontrada.', 'error'));
-  }
-
-  // limpa o parâmetro da URL pra não reabrir o modal num refresh
-  window.history.replaceState({}, '', 'admin.html');
-}
 
 // ---------- Auth ----------
 
-async function checkAuth() {
-  if (!Api.getToken()) {
-    window.location.href = 'login.html';
-    return;
-  }
-  try {
-    const user = await Api.get('/me');
-    qs('#current-username').textContent = user.username;
-  } catch (error) {
+function checkAuth() {
+  const token = Api.getToken();
+  const payload = Api.getTokenPayload();
+  if (!token || !payload || (payload.exp && payload.exp <= Math.floor(Date.now() / 1000))) {
     Api.clearToken();
     window.location.href = 'login.html';
+    return false;
   }
+
+  qs('#current-username').textContent = payload.username || '';
+  return true;
 }
 
 function bindEvents() {
@@ -145,13 +121,14 @@ function renderTable() {
   empty.hidden = true;
 
   cardsCache.forEach((card) => {
+    storeCard(card);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Imagem">${cardImageHtml(card)}</td>
       <td data-label="Nome (EN)">
-        <a class="cards-table__link" href="detail.html?id=${card.id}"><span class="truncate-name">${escapeHtml(card.name_en)}</span></a>
+        <a class="cards-table__link" href="detail.html?id=${card.id}"><span class="truncate-name" title="${escapeHtml(card.name_en)}">${escapeHtml(card.name_en)}</span></a>
       </td>
-      <td data-label="Nome (PT)"><span class="truncate-name">${escapeHtml(card.name_pt || '—')}</span></td>
+      <td data-label="Nome (PT)"><span class="truncate-name" title="${escapeHtml(card.name_pt || '—')}">${escapeHtml(card.name_pt || '—')}</span></td>
       <td data-label="Card Game">${gameBadgeHtml(card)}</td>
       <td data-label="Edição">${escapeHtml(card.edition_name)}</td>
       <td data-label="Raridade">${rarityBadgeHtml(card)}</td>
@@ -195,14 +172,77 @@ function cardImageHtml(card) {
 }
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/`/g, '&#96;');
+}
+
+function cardMatchesFilters(card) {
+  const search = filters.search.toLowerCase();
+  if (search) {
+    const haystack = `${card.name_en || ''} ${card.name_pt || ''} ${card.edition_name || ''}`.toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+  if (filters.game && card.card_game !== filters.game) return false;
+  if (filters.rarity && card.rarity !== filters.rarity) return false;
+  return true;
+}
+
+function handleCardSaved(saved) {
+  storeCard(saved);
+
+  const existingIndex = cardsCache.findIndex((card) => card.id === saved.id);
+  if (existingIndex >= 0) {
+    const wasMatching = cardMatchesFilters(cardsCache[existingIndex]);
+    const isMatching = cardMatchesFilters(saved);
+
+    if (wasMatching && isMatching) {
+      cardsCache[existingIndex] = saved;
+    } else if (wasMatching && !isMatching) {
+      cardsCache.splice(existingIndex, 1);
+      pagination.total = Math.max(0, pagination.total - 1);
+    } else if (!wasMatching && isMatching && pagination.page === 1) {
+      cardsCache.unshift(saved);
+      if (cardsCache.length > pagination.perPage) cardsCache.pop();
+      pagination.total += 1;
+    }
+  } else if (cardMatchesFilters(saved)) {
+    // Uma nova carta entra no topo da ordenação por created_at; só a exibimos
+    // imediatamente na primeira página, sem refazer toda a consulta.
+    pagination.total += 1;
+    if (pagination.page === 1) {
+      cardsCache.unshift(saved);
+      if (cardsCache.length > pagination.perPage) cardsCache.pop();
+    }
+  }
+
+  pagination.totalPages = Math.max(1, Math.ceil(pagination.total / pagination.perPage));
+  renderTable();
+  renderPagination();
+}
+
+function removeCardFromCache(id) {
+  cardsCache = cardsCache.filter((card) => card.id !== id);
+  try {
+    sessionStorage.removeItem(`portal_cartas_card_${id}`);
+  } catch (error) {}
 }
 
 // ---------- Ações da tabela ----------
 
 async function onTableClick(event) {
+  const detailLink = event.target.closest('a[href*="detail.html?id="]');
+  if (detailLink) {
+    const match = detailLink.href.match(/[?&]id=(\d+)/);
+    const card = match ? cardsCache.find((item) => item.id === Number(match[1])) : null;
+    if (card) storeCard(card);
+    return;
+  }
+
   const button = event.target.closest('button[data-action]');
   if (!button) return;
 
@@ -219,12 +259,14 @@ async function onTableClick(event) {
     if (!confirm(MESSAGES.CONFIRM_DELETE(cardLabel))) return;
     try {
       await Api.delete(`/cards/${id}`);
-      showToast(MESSAGES.CARD_DELETED, 'success');
-      // se excluiu o último item da página atual (e não é a página 1), volta uma página
-      if (cardsCache.length === 1 && pagination.page > 1) {
+      removeCardFromCache(id);
+      pagination.total = Math.max(0, pagination.total - 1);
+      if (cardsCache.length === 0 && pagination.page > 1) {
         pagination.page -= 1;
       }
-      loadCards();
+      renderTable();
+      renderPagination();
+      showToast(MESSAGES.CARD_DELETED, 'success');
     } catch (error) {
       showToast(error.message || MESSAGES.GENERIC_ERROR, 'error');
     }
